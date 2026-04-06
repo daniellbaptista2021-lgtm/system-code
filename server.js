@@ -22,16 +22,20 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7579372831';
-const HISTORY_KEY = 'claude-chat:history';
 const SESSION_KEY = 'claude-chat:session';
 const MAX_HISTORY = 200;
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// Session ID for Claude Code - captured from first response, used to resume
-let claudeSessionId = null;
-let isProcessing = false;
-let messageQueue = [];
+// --- Session maps ---
+// wsSessionId -> { claudeSessionId, isProcessing, queue, ws, uploadDir, token }
+const sessions = new Map();
+
+// token -> wsSessionId (for /api/reset lookup)
+const tokenToSessionId = new Map();
+
+// Telegram has its own persistent session
+const telegramSession = { claudeSessionId: null, isProcessing: false, queue: [] };
 
 // --- Redis ---
 const redis = createClient({ url: REDIS_URL });
@@ -57,24 +61,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Multer ---
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${uuidv4().slice(0, 8)}${ext}`);
-  }
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
-      'text/plain', 'text/csv', 'application/json', 'application/zip'];
-    cb(null, allowed.includes(file.mimetype));
-  }
-});
-
 // --- Auth ---
 function verifyToken(token) {
   try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
@@ -93,10 +79,37 @@ app.post('/api/login', (req, res) => {
 
 app.post('/api/upload', (req, res) => {
   const auth = req.headers.authorization;
-  if (!auth || !verifyToken(auth.replace('Bearer ', ''))) {
+  const token = auth ? auth.replace('Bearer ', '') : null;
+  if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
-  upload.single('file')(req, res, (err) => {
+
+  // Find session upload dir for this token
+  const wsSessionId = tokenToSessionId.get(token);
+  const sessionUploadDir = wsSessionId
+    ? path.join(UPLOAD_DIR, wsSessionId)
+    : UPLOAD_DIR;
+
+  if (!fs.existsSync(sessionUploadDir)) fs.mkdirSync(sessionUploadDir, { recursive: true });
+
+  const sessionStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, sessionUploadDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${uuidv4().slice(0, 8)}${ext}`);
+    }
+  });
+  const sessionUpload = multer({
+    storage: sessionStorage,
+    limits: { fileSize: 20 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
+        'text/plain', 'text/csv', 'application/json', 'application/zip'];
+      cb(null, allowed.includes(file.mimetype));
+    }
+  });
+
+  sessionUpload.single('file')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     res.json({ ok: true, path: req.file.path, name: req.file.originalname });
@@ -105,11 +118,16 @@ app.post('/api/upload', (req, res) => {
 
 app.get('/api/history', async (req, res) => {
   const auth = req.headers.authorization;
-  if (!auth || !verifyToken(auth.replace('Bearer ', ''))) {
+  const token = auth ? auth.replace('Bearer ', '') : null;
+  if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
   try {
-    const raw = await redis.lRange(HISTORY_KEY, 0, MAX_HISTORY - 1);
+    const wsSessionId = tokenToSessionId.get(token);
+    const historyKey = wsSessionId
+      ? `claude-chat:history:${wsSessionId}`
+      : 'claude-chat:history';
+    const raw = await redis.lRange(historyKey, -50, -1);
     const messages = raw.map(r => JSON.parse(r));
     res.json({ ok: true, messages });
   } catch {
@@ -117,23 +135,30 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// Reset session endpoint
+// Reset session endpoint - resets only the caller's session
 app.post('/api/reset', (req, res) => {
   const auth = req.headers.authorization;
-  if (!auth || !verifyToken(auth.replace('Bearer ', ''))) {
+  const token = auth ? auth.replace('Bearer ', '') : null;
+  if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
-  claudeSessionId = null;
-  console.log('[Claude] Session reset - next message starts fresh');
-  res.json({ ok: true, session: claudeSessionId });
+  const wsSessionId = tokenToSessionId.get(token);
+  if (wsSessionId && sessions.has(wsSessionId)) {
+    sessions.get(wsSessionId).claudeSessionId = null;
+    console.log(`[Claude] Session reset for wsSessionId=${wsSessionId}`);
+  }
+  res.json({ ok: true });
 });
 
 // --- Redis helper ---
-async function saveMessage(role, content, source = 'web') {
+async function saveMessage(role, content, source = 'web', wsSessionId = null) {
   const msg = { role, content, source, ts: Date.now() };
+  const historyKey = wsSessionId
+    ? `claude-chat:history:${wsSessionId}`
+    : 'claude-chat:history';
   try {
-    await redis.rPush(HISTORY_KEY, JSON.stringify(msg));
-    await redis.lTrim(HISTORY_KEY, -MAX_HISTORY, -1);
+    await redis.rPush(historyKey, JSON.stringify(msg));
+    await redis.lTrim(historyKey, -MAX_HISTORY, -1);
   } catch {}
   return msg;
 }
@@ -147,53 +172,64 @@ if (TELEGRAM_TOKEN) {
   console.warn('[Telegram] No token found, bot disabled');
 }
 
-// --- WebSocket clients ---
-const wsClients = new Set();
-
+// --- Broadcast to all WebSocket clients ---
 function broadcastWeb(msg) {
   const payload = JSON.stringify(msg);
-  wsClients.forEach(ws => {
-    if (ws.readyState === 1) ws.send(payload);
+  sessions.forEach(sess => {
+    if (sess.ws && sess.ws.readyState === 1) sess.ws.send(payload);
   });
 }
 
-// --- Claude Code integration via -p mode ---
-function sendToClaude(text, source = 'web') {
+// --- Claude Code integration: per-session ---
+function sendToClaude(text, wsSessionId, source = 'web') {
+  // Resolve session context: 'telegram' uses telegramSession, others use sessions Map
+  const isTelegram = wsSessionId === 'telegram';
+  const sessCtx = isTelegram ? telegramSession : sessions.get(wsSessionId);
+
+  if (!sessCtx) {
+    console.error(`[Claude] No session context for wsSessionId=${wsSessionId}`);
+    return Promise.reject(new Error('Session not found'));
+  }
+
   return new Promise((resolve, reject) => {
-    if (isProcessing) {
-      messageQueue.push({ text, source, resolve, reject });
+    if (sessCtx.isProcessing) {
+      sessCtx.queue.push({ text, resolve, reject });
       return;
     }
 
-    isProcessing = true;
+    sessCtx.isProcessing = true;
     let fullResponse = '';
     let buffer = '';
 
-    broadcastWeb({ type: 'typing', active: true, source });
+    // Send typing indicator only to the relevant ws (or broadcast for telegram)
+    const sendToSession = (msg) => {
+      if (isTelegram) {
+        broadcastWeb(msg);
+      } else if (sessCtx.ws && sessCtx.ws.readyState === 1) {
+        sessCtx.ws.send(JSON.stringify(msg));
+      }
+    };
 
-    console.log(`[Claude] Processing (${source}): ${text.substring(0, 80)}...`);
+    sendToSession({ type: 'typing', active: true, source });
+    console.log(`[Claude] Processing wsSessionId=${wsSessionId} (${source}): ${text.substring(0, 80)}...`);
 
-    // Build args: first message creates session, subsequent messages resume it
     const args = ['-p', '--output-format', 'stream-json', '--verbose'];
-    if (claudeSessionId) {
-      args.push('--resume', claudeSessionId);
+    if (sessCtx.claudeSessionId) {
+      args.push('--resume', sessCtx.claudeSessionId);
     }
 
-    console.log(`[Claude] Session: ${claudeSessionId || 'new'}`);
+    console.log(`[Claude] Session: ${sessCtx.claudeSessionId || 'new'}`);
     const proc = spawn('claude', args, {
       cwd: '/root',
       env: { ...process.env, HOME: '/root' },
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
-    // Send the message
     proc.stdin.write(text);
     proc.stdin.end();
 
     proc.stdout.on('data', (chunk) => {
       buffer += chunk.toString();
-
-      // Process complete JSON lines
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -202,42 +238,38 @@ function sendToClaude(text, source = 'web') {
         try {
           const event = JSON.parse(line);
 
-          // Capture session_id from init or assistant events
-          if (event.session_id && !claudeSessionId) {
-            claudeSessionId = event.session_id;
-            console.log(`[Claude] Got session: ${claudeSessionId}`);
+          if (event.session_id && !sessCtx.claudeSessionId) {
+            sessCtx.claudeSessionId = event.session_id;
+            console.log(`[Claude] Got session: ${sessCtx.claudeSessionId}`);
           }
 
           if (event.type === 'assistant' && event.message) {
-            // Extract text from message content
             const texts = (event.message.content || [])
               .filter(c => c.type === 'text')
               .map(c => c.text)
               .join('');
             if (texts && texts !== fullResponse) {
-              // Send only the new part
               const newPart = texts.substring(fullResponse.length);
               if (newPart) {
                 fullResponse = texts;
-                broadcastWeb({ type: 'stream', content: newPart });
+                sendToSession({ type: 'stream', content: newPart });
               }
             }
           } else if (event.type === 'result') {
-            // Capture session_id for resuming subsequent messages
             if (event.session_id) {
-              claudeSessionId = event.session_id;
-              console.log(`[Claude] Captured session: ${claudeSessionId}`);
+              sessCtx.claudeSessionId = event.session_id;
+              console.log(`[Claude] Captured session: ${sessCtx.claudeSessionId}`);
             }
             if (event.result && event.result !== fullResponse) {
               const newPart = event.result.substring(fullResponse.length);
               if (newPart) {
                 fullResponse = event.result;
-                broadcastWeb({ type: 'stream', content: newPart });
+                sendToSession({ type: 'stream', content: newPart });
               }
             }
           }
         } catch {
-          // Skip non-JSON lines
+          // skip non-JSON lines
         }
       }
     });
@@ -248,13 +280,12 @@ function sendToClaude(text, source = 'web') {
     });
 
     proc.on('close', (code) => {
-      // Process any remaining buffer
       if (buffer.trim()) {
         try {
           const event = JSON.parse(buffer);
           if (event.type === 'result' && event.result && !fullResponse) {
             fullResponse = event.result;
-            broadcastWeb({ type: 'stream', content: event.result });
+            sendToSession({ type: 'stream', content: event.result });
           }
         } catch {}
       }
@@ -265,51 +296,52 @@ function sendToClaude(text, source = 'web') {
 
       if (!fullResponse) {
         fullResponse = 'Desculpe, nao consegui processar. Tente novamente.';
-        broadcastWeb({ type: 'stream', content: fullResponse });
+        sendToSession({ type: 'stream', content: fullResponse });
       }
 
-      broadcastWeb({ type: 'response_end' });
+      sendToSession({ type: 'response_end' });
 
       // Save response
-      saveMessage('assistant', fullResponse, 'claude');
+      saveMessage('assistant', fullResponse, 'claude', isTelegram ? null : wsSessionId);
 
-      // Mirror to Telegram
-      if (bot && TELEGRAM_CHAT_ID) {
+      // Mirror to Telegram (only if message came from web)
+      if (bot && TELEGRAM_CHAT_ID && source === 'web') {
         const telegramText = fullResponse.substring(0, 4000);
         if (telegramText.length > 0) {
-          const label = source === 'web' ? '[Web] ' : '';
-          bot.api.sendMessage(TELEGRAM_CHAT_ID, label + telegramText).catch(err => {
+          bot.api.sendMessage(TELEGRAM_CHAT_ID, '[Web] ' + telegramText).catch(err => {
             console.error('[Telegram] Send error:', err.message);
           });
         }
       }
 
       console.log(`[Claude] Done (${code}): ${fullResponse.substring(0, 80)}...`);
-      isProcessing = false;
+      sessCtx.isProcessing = false;
       resolve(fullResponse);
 
       // Process next in queue
-      if (messageQueue.length > 0) {
-        const next = messageQueue.shift();
-        sendToClaude(next.text, next.source).then(next.resolve).catch(next.reject);
+      if (sessCtx.queue.length > 0) {
+        const next = sessCtx.queue.shift();
+        sendToClaude(next.text, wsSessionId, source).then(next.resolve).catch(next.reject);
       }
     });
 
     proc.on('error', (err) => {
       console.error('[Claude] Spawn error:', err.message);
-      isProcessing = false;
-      broadcastWeb({ type: 'response_end' });
+      sessCtx.isProcessing = false;
+      sendToSession({ type: 'response_end' });
       reject(err);
     });
 
-    // Timeout after 5 minutes
-    setTimeout(() => {
-      if (isProcessing) {
+    // Timeout after 10 minutes
+    const timeoutId = setTimeout(() => {
+      if (sessCtx.isProcessing) {
         try { proc.kill(); } catch {}
-        isProcessing = false;
-        broadcastWeb({ type: 'response_end' });
+        sessCtx.isProcessing = false;
+        sendToSession({ type: 'response_end' });
       }
-    }, 300000);
+    }, 600000);
+
+    proc.on('close', () => clearTimeout(timeoutId));
   });
 }
 
@@ -320,10 +352,10 @@ if (bot) {
     const userName = ctx.from.first_name || 'User';
 
     console.log(`[Telegram] ${userName}: ${text}`);
-    await saveMessage('user', text, 'telegram');
+    await saveMessage('user', text, 'telegram', null);
     broadcastWeb({ type: 'telegram_message', content: text, user: userName });
 
-    sendToClaude(text, 'telegram').catch(err => {
+    sendToClaude(text, 'telegram', 'telegram').catch(err => {
       console.error('[Telegram] Claude error:', err.message);
       ctx.reply('Erro ao processar mensagem.').catch(() => {});
     });
@@ -341,9 +373,9 @@ if (bot) {
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}.jpg`);
       fs.writeFileSync(filePath, arrayBuf);
 
-      await saveMessage('user', `[Foto] ${caption}`, 'telegram');
+      await saveMessage('user', `[Foto] ${caption}`, 'telegram', null);
       broadcastWeb({ type: 'telegram_message', content: `[Foto] ${caption}`, user: ctx.from.first_name });
-      sendToClaude(`Read the image at ${filePath} and: ${caption}`, 'telegram');
+      sendToClaude(`Read the image at ${filePath} and: ${caption}`, 'telegram', 'telegram');
     } catch (err) {
       console.error('[Telegram] Photo error:', err.message);
     }
@@ -361,9 +393,9 @@ if (bot) {
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}-${doc.file_name}`);
       fs.writeFileSync(filePath, arrayBuf);
 
-      await saveMessage('user', `[${doc.file_name}] ${caption}`, 'telegram');
+      await saveMessage('user', `[${doc.file_name}] ${caption}`, 'telegram', null);
       broadcastWeb({ type: 'telegram_message', content: `[${doc.file_name}] ${caption}`, user: ctx.from.first_name });
-      sendToClaude(`Analyze the file at ${filePath}: ${caption}`, 'telegram');
+      sendToClaude(`Analyze the file at ${filePath}: ${caption}`, 'telegram', 'telegram');
     } catch (err) {
       console.error('[Telegram] Doc error:', err.message);
     }
@@ -381,9 +413,23 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  wsClients.add(ws);
-  console.log(`[WS] Client connected (${wsClients.size} total)`);
+  const wsSessionId = uuidv4();
+  const sessionUploadDir = path.join(UPLOAD_DIR, wsSessionId);
+  fs.mkdirSync(sessionUploadDir, { recursive: true });
 
+  sessions.set(wsSessionId, {
+    claudeSessionId: null,
+    isProcessing: false,
+    queue: [],
+    ws,
+    uploadDir: sessionUploadDir,
+    token
+  });
+
+  // Map token -> wsSessionId for /api/reset and /api/upload
+  tokenToSessionId.set(token, wsSessionId);
+
+  console.log(`[WS] Client connected wsSessionId=${wsSessionId} (${sessions.size} total)`);
   ws.send(JSON.stringify({ type: 'status', status: 'ready' }));
 
   ws.on('message', async (raw) => {
@@ -392,16 +438,16 @@ wss.on('connection', (ws, req) => {
 
       if (msg.type === 'message' && msg.content) {
         const content = msg.content.trim();
-        await saveMessage('user', content, 'web');
-        sendToClaude(content, 'web').catch(err => {
+        await saveMessage('user', content, 'web', wsSessionId);
+        sendToClaude(content, wsSessionId, 'web').catch(err => {
           console.error('[WS] Claude error:', err.message);
         });
       }
 
       if (msg.type === 'file' && msg.path) {
         const text = `Analyze this file: ${msg.path}`;
-        await saveMessage('user', text, 'web');
-        sendToClaude(text, 'web').catch(err => {
+        await saveMessage('user', text, 'web', wsSessionId);
+        sendToClaude(text, wsSessionId, 'web').catch(err => {
           console.error('[WS] Claude error:', err.message);
         });
       }
@@ -411,10 +457,33 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    wsClients.delete(ws);
-    console.log(`[WS] Client disconnected (${wsClients.size} total)`);
+    sessions.delete(wsSessionId);
+    tokenToSessionId.delete(token);
+
+    // Clean up session upload dir
+    try {
+      fs.rmSync(sessionUploadDir, { recursive: true, force: true });
+    } catch {}
+
+    console.log(`[WS] Client disconnected wsSessionId=${wsSessionId} (${sessions.size} total)`);
   });
 });
+
+// --- Cleanup stale sessions every 10 minutes ---
+setInterval(() => {
+  let cleaned = 0;
+  sessions.forEach((sess, id) => {
+    if (!sess.ws || sess.ws.readyState !== 1) {
+      if (sess.uploadDir) {
+        try { fs.rmSync(sess.uploadDir, { recursive: true, force: true }); } catch {}
+      }
+      if (sess.token) tokenToSessionId.delete(sess.token);
+      sessions.delete(id);
+      cleaned++;
+    }
+  });
+  if (cleaned > 0) console.log(`[Cleanup] Removed ${cleaned} stale session(s)`);
+}, 10 * 60 * 1000);
 
 // --- Start ---
 (async () => {
@@ -425,14 +494,12 @@ wss.on('connection', (ws, req) => {
     console.error('[Redis] Connection failed:', err.message);
   }
 
-  // Start Telegram bot
   if (bot) {
     bot.start({
       onStart: () => console.log('[Telegram] Bot polling started'),
       allowed_updates: ['message'],
     }).catch(err => {
       console.error('[Telegram] Bot error:', err.message);
-      // Retry with delay
       setTimeout(() => {
         console.log('[Telegram] Retrying...');
         bot.start({ allowed_updates: ['message'] }).catch(e => {
@@ -444,7 +511,6 @@ wss.on('connection', (ws, req) => {
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[Server] Claude Chat running on http://0.0.0.0:${PORT}`);
-    console.log(`[Server] Session: ${claudeSessionId}`);
   });
 })();
 
