@@ -59,13 +59,19 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .btn-new:hover{background:var(--bg-hover);color:var(--text);transform:translateY(-1px)}
 .btn-new:active{transform:scale(.97)}
 
-.sidebar-label{padding:10px 16px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint)}
+.sidebar-label{padding:10px 16px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint);display:flex;align-items:center;justify-content:space-between}
+.btn-save-session{background:none;border:1px solid var(--border);color:var(--text-faint);font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;transition:all var(--transition);font-family:var(--font)}
+.btn-save-session:hover{background:var(--bg-hover);color:var(--text)}
 .sidebar-list{flex:1;overflow-y:auto;padding:0 8px 8px}
 .sidebar-list::-webkit-scrollbar{width:0}
 
-.chat-item{padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all var(--transition);margin-bottom:1px;border-left:3px solid transparent}
+.chat-item{padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all var(--transition);margin-bottom:1px;border-left:3px solid transparent;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .chat-item:hover{background:var(--bg-sidebar-hover);color:var(--text)}
 .chat-item.active{background:var(--bg-sidebar-active);color:var(--text);border-left-color:var(--accent)}
+.chat-item-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-item-load{background:none;border:none;color:var(--text-faint);font-size:11px;cursor:pointer;padding:2px 5px;border-radius:4px;flex-shrink:0;display:none;transition:color var(--transition)}
+.chat-item:hover .chat-item-load{display:block}
+.chat-item-load:hover{color:var(--accent)}
 
 .sidebar-bottom{padding:12px 16px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
 .user-pill{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-secondary)}
@@ -87,6 +93,10 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
 .header-right{display:flex;gap:8px;align-items:center}
 .pro-badge{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(201,100,66,.12);padding:4px 10px;border-radius:6px;border:1px solid rgba(201,100,66,.2)}
+
+/* Usage bar (Melhoria 6) */
+.usage-bar{display:none;align-items:center;gap:10px;font-size:11px;color:var(--text-muted)}
+.usage-bar span{display:flex;align-items:center;gap:3px}
 
 /* ═══════ MESSAGES ═══════ */
 .messages-wrap{flex:1;overflow-y:auto;overflow-x:hidden}
@@ -122,11 +132,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .msg-source{font-size:10px;color:var(--text-faint);background:var(--bg-input);padding:1px 7px;border-radius:4px;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
 .msg-time{font-size:11px;color:var(--text-faint)}
 
-/* Bot text: Source Serif 4 */
+/* Bot text */
 .msg-text{font-size:15.5px;line-height:1.65;color:var(--text);word-break:break-word;font-family:var(--font-serif)}
 .msg-row.user .msg-text{text-align:right;color:var(--text-secondary);font-family:var(--font);font-size:14.5px;line-height:1.6}
 
-/* Message actions (hover) */
+/* Message actions */
 .msg-actions{display:flex;gap:2px;margin-top:6px;opacity:0;transition:opacity .2s}
 .msg-row:hover .msg-actions{opacity:1}
 .msg-row.user .msg-actions{justify-content:flex-end}
@@ -141,14 +151,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .msg-text em{color:var(--text-secondary);font-style:italic}
 .msg-text a{color:var(--accent-light);text-decoration:none;border-bottom:1px solid transparent;transition:border-color var(--transition)}
 .msg-text a:hover{border-bottom-color:var(--accent-light)}
-
 .msg-text code{background:var(--bg-code);padding:2px 7px;border-radius:5px;font-size:13px;font-family:var(--mono);color:#d4d0c8}
 .msg-text pre{background:var(--bg-code);border-radius:var(--radius-md);margin:14px 0;overflow:hidden;border:1px solid var(--border-subtle)}
 .msg-text pre .code-head{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg-code-header);border-bottom:1px solid var(--border-subtle);font-size:12px;color:var(--text-faint);font-family:var(--font)}
 .msg-text pre .code-head .btn-cp{background:none;border:1px solid var(--border);color:var(--text-faint);padding:2px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--font);transition:all var(--transition)}
 .msg-text pre .code-head .btn-cp:hover{color:var(--text);border-color:var(--text-muted)}
 .msg-text pre code{display:block;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;color:#c8c4bc;background:none;border-radius:0}
-
 .msg-text blockquote{border-left:3px solid var(--accent-dim);padding:2px 0 2px 16px;margin:10px 0;color:var(--text-secondary)}
 .msg-text ul,.msg-text ol{margin:8px 0;padding-left:22px}
 .msg-text li{margin-bottom:4px}
@@ -177,6 +185,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 @keyframes think{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:1}}
 .thinking-label{font-size:13px;color:var(--text-muted);font-family:var(--font-serif);font-style:italic}
 
+/* File download card (Melhoria 4) */
+.file-download{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-top:8px;display:inline-flex;align-items:center;gap:8px;font-size:13px}
+.file-download i{color:var(--text-muted)}
+.file-download a{color:var(--accent);font-weight:500;text-decoration:none}
+.file-download a:hover{color:var(--accent-light)}
+
 /* ═══════ INPUT ═══════ */
 .input-area{padding:12px 24px 18px;display:flex;justify-content:center;flex-shrink:0}
 .input-outer{max-width:720px;width:100%}
@@ -187,8 +201,13 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .upload-bar .btn-x{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:14px;transition:color var(--transition)}
 .upload-bar .btn-x:hover{color:#ef4444}
 
+/* Quick prompt buttons (Melhoria 3) */
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px}
+.quick-btn{background:var(--bg-input);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap}
+.quick-btn:hover{background:var(--bg-hover);color:var(--text);border-color:var(--text-muted)}
+
 .input-shell{display:flex;align-items:flex-end;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s}
-.upload-bar.active+.input-shell{border-radius:0 0 var(--radius-lg) var(--radius-lg);border-top:none}
+.upload-bar.active+.quick-btns+.input-shell,.upload-bar.active~.input-shell{border-radius:0 0 var(--radius-lg) var(--radius-lg);border-top:none}
 .input-shell:focus-within{border-color:var(--accent-dim);box-shadow:0 0 0 1px rgba(201,100,66,.1)}
 
 textarea#msgInput{flex:1;background:none;border:none;color:var(--text);font-size:15px;font-family:var(--font);resize:none;outline:none;line-height:1.5;max-height:180px;min-height:24px;padding:10px 0;letter-spacing:-.005em}
@@ -204,9 +223,23 @@ textarea#msgInput:focus::placeholder{color:var(--text-muted)}
 .btn-send:active{transform:scale(.95)}
 .btn-send:disabled{opacity:.15;cursor:not-allowed;transform:none}
 
+/* Cancel button (Melhoria 2) */
+.btn-cancel{width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;color:#fff;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:13px;transition:all var(--transition)}
+.btn-cancel:hover{opacity:.85;transform:scale(1.05)}
+.btn-cancel:active{transform:scale(.95)}
+
 .input-hint{text-align:center;padding-top:8px;font-size:11px;color:var(--text-faint);letter-spacing:.01em;font-family:var(--font)}
 
 input#fileInput{display:none}
+
+/* ═══════ ERROR MODAL (Melhoria 8) ═══════ */
+#errorModal{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#errorModal.open{display:flex}
+.error-card{background:var(--bg-sidebar);border-radius:12px;padding:24px;max-width:360px;width:90%;text-align:center;border:1px solid var(--border)}
+.error-card h3{font-size:16px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.error-card p{font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px}
+.error-card button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);transition:opacity var(--transition)}
+.error-card button:hover{opacity:.85}
 
 /* ═══════ ANIMATIONS ═══════ */
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -220,14 +253,11 @@ input#fileInput{display:none}
 .btn-hamburger{width:40px;height:40px;border-radius:var(--radius-sm);background:var(--bg-hover);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:18px;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .sidebar-close{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg-hover);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:16px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 
-/* Desktop: hide mobile-only elements */
 @media(min-width:769px){
   .btn-hamburger{display:none!important}
   .sidebar-close{display:none!important}
   .sidebar-overlay{display:none!important}
 }
-
-/* Mobile */
 @media(max-width:768px){
   .btn-hamburger{display:flex!important;align-items:center;justify-content:center}
   .sidebar-close{display:flex!important;align-items:center;justify-content:center}
@@ -235,6 +265,8 @@ input#fileInput{display:none}
   .sidebar.open{transform:translateX(0)}
   .messages-inner{padding:16px 16px 8px}
   .input-area{padding:10px 16px 14px}
+  .quick-btns{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .quick-btns::-webkit-scrollbar{display:none}
 }
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 </style>
@@ -255,7 +287,10 @@ input#fileInput{display:none}
         <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Fechar">&#10005;</button>
       </div>
     </div>
-    <div class="sidebar-label">Recentes</div>
+    <div class="sidebar-label">
+      <span>Conversas</span>
+      <button class="btn-save-session" id="btnSaveSession" title="Salvar sessao atual"><i class="fas fa-bookmark"></i> Salvar</button>
+    </div>
     <div class="sidebar-list" id="chatList">
       <div class="chat-item active">Conversa atual</div>
     </div>
@@ -279,6 +314,7 @@ input#fileInput{display:none}
         </div>
       </div>
       <div class="header-right">
+        <div class="usage-bar" id="usageBar"></div>
         <div class="pro-badge">Pro</div>
       </div>
     </div>
@@ -300,10 +336,20 @@ input#fileInput{display:none}
           <span class="fname" id="uploadName"></span>
           <button class="btn-x" id="btnCancelUpload"><i class="fas fa-xmark"></i></button>
         </div>
+        <!-- Quick prompt buttons (Melhoria 3) -->
+        <div class="quick-btns" id="quickBtns">
+          <button class="quick-btn" data-prompt="Ajuste esta planilha: ">📊 Planilha</button>
+          <button class="quick-btn" data-prompt="Crie uma landing page completa em HTML para: ">🌐 Landing Page</button>
+          <button class="quick-btn" data-prompt="Crie um workflow n8n em JSON para: ">🔄 n8n Flow</button>
+          <button class="quick-btn" data-prompt="Analise e corrija os erros neste código: ">🐛 Corrigir Código</button>
+          <button class="quick-btn" data-prompt="Crie um agente WhatsApp com prompt para: ">🤖 Agente WhatsApp</button>
+          <button class="quick-btn" data-prompt="Gere um relatório em formato markdown sobre: ">📄 Relatório</button>
+        </div>
         <div class="input-shell">
           <textarea id="msgInput" rows="1" placeholder="Mensagem para o System Code..." autocomplete="off"></textarea>
           <div class="input-btns">
             <button class="btn-attach" id="btnAttach" title="Anexar"><i class="fas fa-paperclip"></i></button>
+            <button class="btn-cancel" id="btnCancel" title="Cancelar"><i class="fas fa-stop"></i></button>
             <button class="btn-send" id="btnSend" title="Enviar" disabled><i class="fas fa-arrow-up"></i></button>
           </div>
         </div>
@@ -313,6 +359,15 @@ input#fileInput{display:none}
 
     <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.csv,.json,.zip">
   </main>
+</div>
+
+<!-- Error Modal (Melhoria 8) -->
+<div id="errorModal">
+  <div class="error-card">
+    <h3>Limite de sessoes atingido</h3>
+    <p id="errorModalMsg">Feche uma aba e tente novamente.</p>
+    <button onclick="document.getElementById('errorModal').classList.remove('open')">Ok</button>
+  </div>
 </div>
 
 <script>
@@ -327,7 +382,7 @@ const API_CONFIG = {
   responseField: 'response'
 };
 
-// ── Infinity SVG (for bot avatar) ──
+// ── Infinity SVG ──
 const INFINITY_SVG = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M18.6 6.62c-1.44 0-2.8.56-3.77 1.53L12 10.66 9.17 8.15A5.24 5.24 0 005.4 6.62C2.42 6.62 0 9.04 0 12s2.42 5.38 5.4 5.38c1.44 0 2.8-.56 3.77-1.53L12 13.34l2.83 2.51a5.24 5.24 0 003.77 1.53C21.58 17.38 24 14.96 24 12s-2.42-5.38-5.4-5.38zm-13.2 8.56C3.64 15.18 2.2 13.74 2.2 12s1.44-3.18 3.2-3.18c.86 0 1.68.34 2.27.93L12 13.34 9.07 16.1c-.6.59-1.41.93-2.27.93h-.6.6zm13.2 0c-.86 0-1.68-.34-2.27-.93L12 10.66l2.93-2.76c.6-.59 1.41-.93 2.27-.93 1.76 0 3.2 1.44 3.2 3.18s-1.44 3.03-3.2 3.03z"/></svg>';
 
 // Elements
@@ -337,10 +392,15 @@ const wrapEl = $('messagesWrap');
 const welcomeEl = $('welcome');
 const msgInput = $('msgInput');
 const btnSend = $('btnSend');
+const btnCancel = $('btnCancel');
 const dot = $('dot');
+const usageBar = $('usageBar');
 
 let ws, currentStreamEl = null, streamText = '', isWaiting = false, userAtBottom = true;
 let chatHistory = [];
+
+// Token usage accumulators (Melhoria 6)
+let totalInputTokens = 0, totalOutputTokens = 0, totalCostUsd = 0;
 
 // ── Smart auto-scroll ──
 wrapEl.addEventListener('scroll', () => {
@@ -360,6 +420,7 @@ function connect() {
   ws.onclose = e => {
     dot.className = 'dot offline';
     if (e.code === 4001) { localStorage.removeItem('claude_token'); location.href = '/'; return; }
+    if (e.code === 4002) return; // max sessions, already handled
     setTimeout(connect, 3000);
   };
   ws.onerror = () => dot.className = 'dot offline';
@@ -369,6 +430,22 @@ function handleMsg(m) {
   if (m.type === 'status') dot.className = 'dot ' + (m.status === 'ready' ? 'online' : 'loading');
 
   if (m.type === 'typing') showThinking(m.active);
+
+  // Melhoria 1: Queue position feedback
+  if (m.type === 'queued') {
+    if (thinkEl) thinkEl.remove();
+    thinkEl = document.createElement('div');
+    thinkEl.className = 'thinking active';
+    thinkEl.innerHTML = `<div class="thinking-inner"><div class="msg-avatar ai">${INFINITY_SVG}</div><div class="thinking-label">⏳ Aguardando — posição ${m.position} na fila</div></div>`;
+    messagesEl.appendChild(thinkEl);
+    scrollDown();
+  }
+
+  if (m.type === 'queue_start') {
+    if (thinkEl) {
+      thinkEl.innerHTML = `<div class="thinking-inner"><div class="msg-avatar ai">${INFINITY_SVG}</div><div class="thinking-dots"><span></span><span></span><span></span></div><div class="thinking-label">Pensando...</div></div>`;
+    }
+  }
 
   if (m.type === 'stream') {
     hideThinking();
@@ -398,6 +475,50 @@ function handleMsg(m) {
     addMsg('tg', m.content, m.user || 'Telegram', 'telegram');
     isWaiting = true; updateBtn();
   }
+
+  // Melhoria 2: Cancelled
+  if (m.type === 'cancelled') {
+    hideThinking();
+    currentStreamEl = null; streamText = '';
+    isWaiting = false; updateBtn();
+    addMsg('ai', '⛔ Resposta cancelada.', 'System Code');
+  }
+
+  // Melhoria 4: File created
+  if (m.type === 'file_created') {
+    const fileEl = document.createElement('div');
+    fileEl.className = 'file-download';
+    fileEl.innerHTML = `<i class="fas fa-file-arrow-down"></i> <a href="/api/download/${encodeURIComponent(m.filename)}?token=${encodeURIComponent(token)}" download="${esc(m.filename)}">${esc(m.filename)}</a>`;
+    if (currentStreamEl) {
+      currentStreamEl.querySelector('.msg-body').appendChild(fileEl);
+    } else {
+      messagesEl.appendChild(fileEl);
+    }
+    scrollDown();
+  }
+
+  // Melhoria 6: Token usage
+  if (m.type === 'usage') {
+    totalInputTokens += m.input_tokens || 0;
+    totalOutputTokens += m.output_tokens || 0;
+    totalCostUsd += parseFloat(m.cost_usd || 0);
+    usageBar.style.display = 'flex';
+    usageBar.innerHTML = `<span title="Tokens enviados">↑ ${m.input_tokens.toLocaleString('pt-BR')}</span><span title="Tokens recebidos">↓ ${m.output_tokens.toLocaleString('pt-BR')}</span><span title="Custo estimado desta resposta">~$${m.cost_usd}</span><span title="Custo acumulado da sessao" style="color:var(--text-faint)">total ~$${totalCostUsd.toFixed(5)}</span>`;
+  }
+
+  // Melhoria 7: Watchdog restart
+  if (m.type === 'watchdog_restart') {
+    hideThinking();
+    currentStreamEl = null; streamText = '';
+    isWaiting = false; updateBtn();
+    addMsg('ai', '⚠️ Processo travado detectado. Reiniciando automaticamente... Reenvie sua mensagem.', 'System Code');
+  }
+
+  // Melhoria 8: Max sessions error
+  if (m.type === 'error' && m.code === 'max_sessions') {
+    $('errorModalMsg').textContent = m.message;
+    $('errorModal').classList.add('open');
+  }
 }
 
 // ── Thinking indicator ──
@@ -426,7 +547,6 @@ function addMsg(type, content, name, source) {
   const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const srcBadge = source === 'telegram' ? '<span class="msg-source">Telegram</span>' : '';
 
-  // Action buttons for bot messages
   const actions = type === 'ai' ? `
     <div class="msg-actions">
       <button class="msg-act" onclick="copyMsg(this)" title="Copiar"><i class="fas fa-copy"></i></button>
@@ -515,7 +635,6 @@ function send() {
   isWaiting = true; updateBtn();
   currentStreamEl = null; streamText = '';
 
-  // Try WebSocket first, fallback to API
   if (ws && ws.readyState === 1) {
     ws.send(JSON.stringify({ type: 'message', content: text }));
   } else {
@@ -539,7 +658,7 @@ async function sendViaAPI(text) {
     const el = addMsg('ai', '', 'System Code');
     renderMd(el.querySelector('.msg-text'), response, false);
     chatHistory.push({ role: 'assistant', content: response });
-  } catch (err) {
+  } catch {
     hideThinking();
     addMsg('ai', 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.', 'System Code');
   }
@@ -547,8 +666,22 @@ async function sendViaAPI(text) {
 }
 
 function updateBtn() {
+  if (isWaiting) {
+    btnCancel.style.display = 'flex';
+    btnSend.style.display = 'none';
+    $('quickBtns').style.display = 'none';
+  } else {
+    btnCancel.style.display = 'none';
+    btnSend.style.display = 'flex';
+    $('quickBtns').style.display = 'flex';
+  }
   btnSend.disabled = isWaiting || !msgInput.value.trim();
 }
+
+// Melhoria 2: Cancel button
+btnCancel.addEventListener('click', async () => {
+  await fetch('/api/cancel', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => {});
+});
 
 btnSend.addEventListener('click', send);
 msgInput.addEventListener('keydown', e => {
@@ -560,6 +693,17 @@ function resize() {
   msgInput.style.height = 'auto';
   msgInput.style.height = Math.min(msgInput.scrollHeight, 180) + 'px';
 }
+
+// Melhoria 3: Quick prompt buttons
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    msgInput.value = btn.dataset.prompt;
+    msgInput.focus();
+    msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
+    resize();
+    updateBtn();
+  });
+});
 
 // ── File upload ──
 $('btnAttach').addEventListener('click', () => $('fileInput').click());
@@ -587,8 +731,10 @@ const WELCOME_HTML = `<div class="welcome" id="welcome"><div class="welcome-icon
 function resetChat() {
   fetch('/api/reset', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => {});
   messagesEl.innerHTML = WELCOME_HTML;
-  currentStreamEl = null; streamText = ''; isWaiting = false; chatHistory = []; updateBtn();
-  // Close sidebar on mobile after action
+  currentStreamEl = null; streamText = ''; isWaiting = false; chatHistory = [];
+  totalInputTokens = 0; totalOutputTokens = 0; totalCostUsd = 0;
+  usageBar.style.display = 'none';
+  updateBtn();
   closeSidebar();
 }
 $('btnNew').addEventListener('click', resetChat);
@@ -605,37 +751,77 @@ function closeSidebar() {
   $('sidebar').classList.remove('open');
   $('sidebarOverlay').classList.remove('open');
 }
-// Swipe to close sidebar on mobile
 let touchStartX = 0;
 $('sidebar').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
 $('sidebar').addEventListener('touchend', e => {
   const diff = touchStartX - e.changedTouches[0].clientX;
-  if (diff > 60) closeSidebar(); // swipe left to close
+  if (diff > 60) closeSidebar();
 }, { passive: true });
 
-// ── Sidebar conversation list ──
-function updateSidebarList() {
+// ── Sidebar conversation list (Melhoria 5) ──
+async function updateSidebarList() {
   const listEl = $('chatList');
-  // Extract user messages from chatHistory to show as conversation items
   const userMsgs = chatHistory.filter(m => m.role === 'user');
-  if (userMsgs.length === 0) {
-    listEl.innerHTML = '<div class="chat-item active">Nova conversa</div>';
-    return;
-  }
-  // Show current conversation with first user message as title
-  const title = userMsgs[0].content.substring(0, 40) + (userMsgs[0].content.length > 40 ? '...' : '');
-  listEl.innerHTML = `<div class="chat-item active">${esc(title)}</div>`;
+  const title = userMsgs.length > 0
+    ? userMsgs[0].content.substring(0, 40) + (userMsgs[0].content.length > 40 ? '...' : '')
+    : 'Nova conversa';
+  listEl.innerHTML = `<div class="chat-item active"><span class="chat-item-title">${esc(title)}</span></div>`;
 
-  // Load saved conversations from localStorage
+  // Load saved sessions from server (Melhoria 5)
+  try {
+    const r = await fetch('/api/sessions', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    if (d.ok && d.sessions.length) {
+      d.sessions.forEach(sess => {
+        const item = document.createElement('div');
+        item.className = 'chat-item';
+        item.innerHTML = `<span class="chat-item-title">${esc(sess.name)}</span><button class="chat-item-load" onclick="loadServerSession('${esc(sess.id)}','${esc(sess.name)}')">Retomar</button>`;
+        listEl.appendChild(item);
+      });
+    }
+  } catch {}
+
+  // Local saved conversations
   const saved = JSON.parse(localStorage.getItem('sc_conversations') || '[]');
   saved.forEach((conv, i) => {
     const item = document.createElement('div');
     item.className = 'chat-item';
-    item.textContent = conv.title;
+    item.innerHTML = `<span class="chat-item-title">${esc(conv.title)}</span>`;
     item.onclick = () => loadSavedConversation(i);
     listEl.appendChild(item);
   });
 }
+
+// Melhoria 5: Save session to server
+$('btnSaveSession').addEventListener('click', async () => {
+  const defaultName = 'Sessao ' + new Date().toLocaleDateString('pt-BR');
+  const name = window.prompt('Nome da sessao:', defaultName);
+  if (!name) return;
+  try {
+    await fetch('/api/sessions/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ name })
+    });
+    updateSidebarList();
+  } catch {}
+});
+
+// Melhoria 5: Load server session
+window.loadServerSession = async function(sessionId, name) {
+  try {
+    const r = await fetch('/api/sessions/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ sessionId })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      addMsg('ai', `✅ Contexto da sessão "${esc(name)}" restaurado. Continue de onde parou.`, 'System Code');
+    }
+  } catch {}
+  closeSidebar();
+};
 
 function saveCurrentConversation() {
   if (chatHistory.length < 2) return;
@@ -643,10 +829,8 @@ function saveCurrentConversation() {
   if (userMsgs.length === 0) return;
   const title = userMsgs[0].content.substring(0, 40) + (userMsgs[0].content.length > 40 ? '...' : '');
   const saved = JSON.parse(localStorage.getItem('sc_conversations') || '[]');
-  // Avoid duplicates
   if (saved.length > 0 && saved[0].title === title) return;
   saved.unshift({ title, messages: chatHistory, ts: Date.now() });
-  // Keep max 20 conversations
   if (saved.length > 20) saved.length = 20;
   localStorage.setItem('sc_conversations', JSON.stringify(saved));
 }
@@ -654,9 +838,7 @@ function saveCurrentConversation() {
 function loadSavedConversation(idx) {
   const saved = JSON.parse(localStorage.getItem('sc_conversations') || '[]');
   if (!saved[idx]) return;
-  // Save current first
   saveCurrentConversation();
-  // Load selected
   messagesEl.innerHTML = '';
   chatHistory = [];
   saved[idx].messages.forEach(m => {

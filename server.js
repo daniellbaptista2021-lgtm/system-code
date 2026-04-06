@@ -24,18 +24,19 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7579372831';
 const SESSION_KEY = 'claude-chat:session';
 const MAX_HISTORY = 200;
+const MAX_CONCURRENT_SESSIONS = 5;
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // --- Session maps ---
-// wsSessionId -> { claudeSessionId, isProcessing, queue, ws, uploadDir, token }
+// wsSessionId -> { claudeSessionId, isProcessing, queue, ws, uploadDir, token, proc }
 const sessions = new Map();
 
-// token -> wsSessionId (for /api/reset lookup)
+// token -> wsSessionId (for HTTP endpoint lookups)
 const tokenToSessionId = new Map();
 
 // Telegram has its own persistent session
-const telegramSession = { claudeSessionId: null, isProcessing: false, queue: [] };
+const telegramSession = { claudeSessionId: null, isProcessing: false, queue: [], proc: null };
 
 // --- Redis ---
 const redis = createClient({ url: REDIS_URL });
@@ -66,6 +67,12 @@ function verifyToken(token) {
   try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
 }
 
+// --- Helper: get token from request ---
+function getToken(req) {
+  const auth = req.headers.authorization;
+  return auth ? auth.replace('Bearer ', '') : (req.query.token || null);
+}
+
 // --- Routes ---
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
@@ -78,18 +85,13 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/upload', (req, res) => {
-  const auth = req.headers.authorization;
-  const token = auth ? auth.replace('Bearer ', '') : null;
+  const token = getToken(req);
   if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
 
-  // Find session upload dir for this token
   const wsSessionId = tokenToSessionId.get(token);
-  const sessionUploadDir = wsSessionId
-    ? path.join(UPLOAD_DIR, wsSessionId)
-    : UPLOAD_DIR;
-
+  const sessionUploadDir = wsSessionId ? path.join(UPLOAD_DIR, wsSessionId) : UPLOAD_DIR;
   if (!fs.existsSync(sessionUploadDir)) fs.mkdirSync(sessionUploadDir, { recursive: true });
 
   const sessionStorage = multer.diskStorage({
@@ -117,16 +119,13 @@ app.post('/api/upload', (req, res) => {
 });
 
 app.get('/api/history', async (req, res) => {
-  const auth = req.headers.authorization;
-  const token = auth ? auth.replace('Bearer ', '') : null;
+  const token = getToken(req);
   if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
   try {
     const wsSessionId = tokenToSessionId.get(token);
-    const historyKey = wsSessionId
-      ? `claude-chat:history:${wsSessionId}`
-      : 'claude-chat:history';
+    const historyKey = wsSessionId ? `claude-chat:history:${wsSessionId}` : 'claude-chat:history';
     const raw = await redis.lRange(historyKey, -50, -1);
     const messages = raw.map(r => JSON.parse(r));
     res.json({ ok: true, messages });
@@ -135,10 +134,9 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// Reset session endpoint - resets only the caller's session
+// Reset session
 app.post('/api/reset', (req, res) => {
-  const auth = req.headers.authorization;
-  const token = auth ? auth.replace('Bearer ', '') : null;
+  const token = getToken(req);
   if (!token || !verifyToken(token)) {
     return res.status(401).json({ error: 'Nao autorizado' });
   }
@@ -150,18 +148,151 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
+// Cancel current response (Melhoria 2)
+app.post('/api/cancel', (req, res) => {
+  const token = getToken(req);
+  if (!token || !verifyToken(token)) {
+    return res.status(401).json({ error: 'Nao autorizado' });
+  }
+  const wsSessionId = tokenToSessionId.get(token);
+  if (wsSessionId && sessions.has(wsSessionId)) {
+    const sessCtx = sessions.get(wsSessionId);
+    if (sessCtx.proc) {
+      try { sessCtx.proc.kill(); } catch {}
+      sessCtx.proc = null;
+    }
+    sessCtx.isProcessing = false;
+    sessCtx.queue = [];
+    if (sessCtx.ws && sessCtx.ws.readyState === 1) {
+      sessCtx.ws.send(JSON.stringify({ type: 'cancelled' }));
+    }
+  }
+  res.json({ ok: true });
+});
+
+// Download generated file (Melhoria 4)
+app.get('/api/download/:filename', (req, res) => {
+  const token = getToken(req);
+  if (!token || !verifyToken(token)) {
+    return res.status(401).json({ error: 'Nao autorizado' });
+  }
+  const filename = path.basename(req.params.filename);
+  // Search in UPLOAD_DIR and 2 levels deep
+  const searchDirs = [UPLOAD_DIR];
+  try {
+    fs.readdirSync(UPLOAD_DIR).forEach(entry => {
+      const full = path.join(UPLOAD_DIR, entry);
+      if (fs.statSync(full).isDirectory()) searchDirs.push(full);
+    });
+  } catch {}
+
+  for (const dir of searchDirs) {
+    const candidate = path.join(dir, filename);
+    if (fs.existsSync(candidate)) {
+      return res.download(candidate, filename);
+    }
+  }
+
+  // Also search /tmp and /root for files created by Claude
+  const extraDirs = ['/tmp', '/root'];
+  for (const dir of extraDirs) {
+    try {
+      const candidate = path.join(dir, filename);
+      if (fs.existsSync(candidate)) return res.download(candidate, filename);
+    } catch {}
+  }
+
+  res.status(404).json({ error: 'Arquivo nao encontrado' });
+});
+
+// Status endpoint (Melhoria 8)
+app.get('/api/status', (req, res) => {
+  res.json({ sessions: sessions.size, max: MAX_CONCURRENT_SESSIONS, ok: true });
+});
+
+// Saved sessions endpoints (Melhoria 5)
+app.post('/api/sessions/save', async (req, res) => {
+  const token = getToken(req);
+  const decoded = token ? verifyToken(token) : null;
+  if (!decoded) return res.status(401).json({ error: 'Nao autorizado' });
+
+  const { name } = req.body;
+  const wsSessionId = tokenToSessionId.get(token);
+  if (!wsSessionId || !sessions.has(wsSessionId)) {
+    return res.status(400).json({ error: 'Sessao nao encontrada' });
+  }
+  const sessCtx = sessions.get(wsSessionId);
+  const redisKey = `claude-chat:saved-sessions:${decoded.user}`;
+
+  try {
+    const raw = await redis.get(redisKey);
+    const saved = raw ? JSON.parse(raw) : [];
+    saved.unshift({
+      id: wsSessionId,
+      name: name || `Sessao ${new Date().toLocaleDateString('pt-BR')}`,
+      claudeSessionId: sessCtx.claudeSessionId,
+      ts: Date.now()
+    });
+    if (saved.length > 10) saved.length = 10;
+    await redis.set(redisKey, JSON.stringify(saved), { EX: 90 * 24 * 3600 });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/sessions', async (req, res) => {
+  const token = getToken(req);
+  const decoded = token ? verifyToken(token) : null;
+  if (!decoded) return res.status(401).json({ error: 'Nao autorizado' });
+
+  try {
+    const raw = await redis.get(`claude-chat:saved-sessions:${decoded.user}`);
+    res.json({ ok: true, sessions: raw ? JSON.parse(raw) : [] });
+  } catch {
+    res.json({ ok: true, sessions: [] });
+  }
+});
+
+app.post('/api/sessions/load', async (req, res) => {
+  const token = getToken(req);
+  const decoded = token ? verifyToken(token) : null;
+  if (!decoded) return res.status(401).json({ error: 'Nao autorizado' });
+
+  const { sessionId } = req.body;
+  const wsSessionId = tokenToSessionId.get(token);
+  if (!wsSessionId || !sessions.has(wsSessionId)) {
+    return res.status(400).json({ error: 'Sessao ativa nao encontrada' });
+  }
+
+  try {
+    const raw = await redis.get(`claude-chat:saved-sessions:${decoded.user}`);
+    const saved = raw ? JSON.parse(raw) : [];
+    const target = saved.find(s => s.id === sessionId);
+    if (!target) return res.status(404).json({ error: 'Sessao salva nao encontrada' });
+
+    // Resume that Claude session context
+    sessions.get(wsSessionId).claudeSessionId = target.claudeSessionId;
+    console.log(`[Claude] Loaded saved session ${sessionId} -> claudeSessionId=${target.claudeSessionId}`);
+    res.json({ ok: true, name: target.name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Redis helper ---
 async function saveMessage(role, content, source = 'web', wsSessionId = null) {
   const msg = { role, content, source, ts: Date.now() };
-  const historyKey = wsSessionId
-    ? `claude-chat:history:${wsSessionId}`
-    : 'claude-chat:history';
+  const historyKey = wsSessionId ? `claude-chat:history:${wsSessionId}` : 'claude-chat:history';
   try {
     await redis.rPush(historyKey, JSON.stringify(msg));
     await redis.lTrim(historyKey, -MAX_HISTORY, -1);
   } catch {}
   return msg;
 }
+
+// --- File path detection regex (Melhoria 4) ---
+const FILE_PATH_RE = /(?:criado|salvo|saved|created|arquivo|file)[:\s]+([\/\w\-\.]+\.(xlsx|xls|html|json|csv|txt|pdf|zip|png|jpg|jpeg))/gi;
 
 // --- Telegram Bot ---
 let bot = null;
@@ -182,7 +313,6 @@ function broadcastWeb(msg) {
 
 // --- Claude Code integration: per-session ---
 function sendToClaude(text, wsSessionId, source = 'web') {
-  // Resolve session context: 'telegram' uses telegramSession, others use sessions Map
   const isTelegram = wsSessionId === 'telegram';
   const sessCtx = isTelegram ? telegramSession : sessions.get(wsSessionId);
 
@@ -193,7 +323,12 @@ function sendToClaude(text, wsSessionId, source = 'web') {
 
   return new Promise((resolve, reject) => {
     if (sessCtx.isProcessing) {
+      const position = sessCtx.queue.length + 1;
       sessCtx.queue.push({ text, resolve, reject });
+      // Notify client of queue position
+      if (!isTelegram && sessCtx.ws && sessCtx.ws.readyState === 1) {
+        sessCtx.ws.send(JSON.stringify({ type: 'queued', position }));
+      }
       return;
     }
 
@@ -201,7 +336,6 @@ function sendToClaude(text, wsSessionId, source = 'web') {
     let fullResponse = '';
     let buffer = '';
 
-    // Send typing indicator only to the relevant ws (or broadcast for telegram)
     const sendToSession = (msg) => {
       if (isTelegram) {
         broadcastWeb(msg);
@@ -225,10 +359,25 @@ function sendToClaude(text, wsSessionId, source = 'web') {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
+    // Store proc reference for cancel support (Melhoria 2)
+    sessCtx.proc = proc;
+
     proc.stdin.write(text);
     proc.stdin.end();
 
+    // Watchdog: kill if no output for 60s (Melhoria 7)
+    let lastActivityAt = Date.now();
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastActivityAt > 60000 && sessCtx.isProcessing) {
+        console.warn(`[Claude] Watchdog: no output for 60s on wsSessionId=${wsSessionId}, killing...`);
+        try { proc.kill(); } catch {}
+        clearInterval(watchdog);
+        sendToSession({ type: 'watchdog_restart' });
+      }
+    }, 15000);
+
     proc.stdout.on('data', (chunk) => {
+      lastActivityAt = Date.now(); // reset watchdog timer
       buffer += chunk.toString();
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
@@ -267,6 +416,20 @@ function sendToClaude(text, wsSessionId, source = 'web') {
                 sendToSession({ type: 'stream', content: newPart });
               }
             }
+            // Send token usage (Melhoria 6)
+            if (event.usage) {
+              const inputTokens = event.usage.input_tokens || 0;
+              const outputTokens = event.usage.output_tokens || 0;
+              const inputCost = (inputTokens / 1000000) * 3.0;
+              const outputCost = (outputTokens / 1000000) * 15.0;
+              const totalCost = inputCost + outputCost;
+              sendToSession({
+                type: 'usage',
+                input_tokens: inputTokens,
+                output_tokens: outputTokens,
+                cost_usd: totalCost.toFixed(6)
+              });
+            }
           }
         } catch {
           // skip non-JSON lines
@@ -280,6 +443,9 @@ function sendToClaude(text, wsSessionId, source = 'web') {
     });
 
     proc.on('close', (code) => {
+      clearInterval(watchdog);
+      sessCtx.proc = null;
+
       if (buffer.trim()) {
         try {
           const event = JSON.parse(buffer);
@@ -301,10 +467,20 @@ function sendToClaude(text, wsSessionId, source = 'web') {
 
       sendToSession({ type: 'response_end' });
 
+      // Detect file paths in response (Melhoria 4)
+      FILE_PATH_RE.lastIndex = 0;
+      let match;
+      while ((match = FILE_PATH_RE.exec(fullResponse)) !== null) {
+        const filePath = match[1];
+        if (fs.existsSync(filePath)) {
+          sendToSession({ type: 'file_created', filename: path.basename(filePath), path: filePath });
+        }
+      }
+
       // Save response
       saveMessage('assistant', fullResponse, 'claude', isTelegram ? null : wsSessionId);
 
-      // Mirror to Telegram (only if message came from web)
+      // Mirror to Telegram (only if from web)
       if (bot && TELEGRAM_CHAT_ID && source === 'web') {
         const telegramText = fullResponse.substring(0, 4000);
         if (telegramText.length > 0) {
@@ -321,11 +497,17 @@ function sendToClaude(text, wsSessionId, source = 'web') {
       // Process next in queue
       if (sessCtx.queue.length > 0) {
         const next = sessCtx.queue.shift();
+        // Notify client that queued message is now starting
+        if (!isTelegram && sessCtx.ws && sessCtx.ws.readyState === 1) {
+          sessCtx.ws.send(JSON.stringify({ type: 'queue_start' }));
+        }
         sendToClaude(next.text, wsSessionId, source).then(next.resolve).catch(next.reject);
       }
     });
 
     proc.on('error', (err) => {
+      clearInterval(watchdog);
+      sessCtx.proc = null;
       console.error('[Claude] Spawn error:', err.message);
       sessCtx.isProcessing = false;
       sendToSession({ type: 'response_end' });
@@ -337,6 +519,7 @@ function sendToClaude(text, wsSessionId, source = 'web') {
       if (sessCtx.isProcessing) {
         try { proc.kill(); } catch {}
         sessCtx.isProcessing = false;
+        sessCtx.proc = null;
         sendToSession({ type: 'response_end' });
       }
     }, 600000);
@@ -350,11 +533,9 @@ if (bot) {
   bot.on('message:text', async (ctx) => {
     const text = ctx.message.text;
     const userName = ctx.from.first_name || 'User';
-
     console.log(`[Telegram] ${userName}: ${text}`);
     await saveMessage('user', text, 'telegram', null);
     broadcastWeb({ type: 'telegram_message', content: text, user: userName });
-
     sendToClaude(text, 'telegram', 'telegram').catch(err => {
       console.error('[Telegram] Claude error:', err.message);
       ctx.reply('Erro ao processar mensagem.').catch(() => {});
@@ -372,7 +553,6 @@ if (bot) {
       const arrayBuf = await res.buffer();
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}.jpg`);
       fs.writeFileSync(filePath, arrayBuf);
-
       await saveMessage('user', `[Foto] ${caption}`, 'telegram', null);
       broadcastWeb({ type: 'telegram_message', content: `[Foto] ${caption}`, user: ctx.from.first_name });
       sendToClaude(`Read the image at ${filePath} and: ${caption}`, 'telegram', 'telegram');
@@ -392,7 +572,6 @@ if (bot) {
       const arrayBuf = await res.buffer();
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}-${doc.file_name}`);
       fs.writeFileSync(filePath, arrayBuf);
-
       await saveMessage('user', `[${doc.file_name}] ${caption}`, 'telegram', null);
       broadcastWeb({ type: 'telegram_message', content: `[${doc.file_name}] ${caption}`, user: ctx.from.first_name });
       sendToClaude(`Analyze the file at ${filePath}: ${caption}`, 'telegram', 'telegram');
@@ -413,6 +592,17 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
+  // Melhoria 8: limit concurrent sessions
+  if (sessions.size >= MAX_CONCURRENT_SESSIONS) {
+    ws.send(JSON.stringify({
+      type: 'error',
+      code: 'max_sessions',
+      message: 'Limite de sessoes ativas atingido. Feche uma aba e tente novamente.'
+    }));
+    ws.close(4002, 'Max sessions');
+    return;
+  }
+
   const wsSessionId = uuidv4();
   const sessionUploadDir = path.join(UPLOAD_DIR, wsSessionId);
   fs.mkdirSync(sessionUploadDir, { recursive: true });
@@ -423,12 +613,11 @@ wss.on('connection', (ws, req) => {
     queue: [],
     ws,
     uploadDir: sessionUploadDir,
-    token
+    token,
+    proc: null
   });
 
-  // Map token -> wsSessionId for /api/reset and /api/upload
   tokenToSessionId.set(token, wsSessionId);
-
   console.log(`[WS] Client connected wsSessionId=${wsSessionId} (${sessions.size} total)`);
   ws.send(JSON.stringify({ type: 'status', status: 'ready' }));
 
@@ -459,12 +648,7 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => {
     sessions.delete(wsSessionId);
     tokenToSessionId.delete(token);
-
-    // Clean up session upload dir
-    try {
-      fs.rmSync(sessionUploadDir, { recursive: true, force: true });
-    } catch {}
-
+    try { fs.rmSync(sessionUploadDir, { recursive: true, force: true }); } catch {}
     console.log(`[WS] Client disconnected wsSessionId=${wsSessionId} (${sessions.size} total)`);
   });
 });
