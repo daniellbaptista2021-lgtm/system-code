@@ -15,7 +15,8 @@ const { Bot } = require('grammy');
 
 // --- Config ---
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) { console.error('[FATAL] JWT_SECRET not set in .env'); process.exit(1); }
 const LOGIN_USER = process.env.LOGIN_USER || 'admin';
 const LOGIN_PASS = process.env.LOGIN_PASS || 'admin';
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
@@ -50,6 +51,18 @@ function loadSkills() {
   return skills;
 }
 
+// Skills cache (reload every 5 minutes)
+let _skillsCache = null;
+let _skillsCacheTs = 0;
+function getSkills() {
+  const now = Date.now();
+  if (!_skillsCache || now - _skillsCacheTs > 300000) {
+    _skillsCache = loadSkills();
+    _skillsCacheTs = now;
+  }
+  return _skillsCache;
+}
+
 // --- Session maps ---
 // wsSessionId -> { claudeSessionId, isProcessing, queue, ws, uploadDir, token, proc }
 const sessions = new Map();
@@ -80,8 +93,22 @@ app.use(helmet({
     }
   }
 }));
-app.use(cors());
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(express.json());
+
+// Rate limiting
+const loginAttempts = new Map();
+function rateLimit(key, maxAttempts = 5, windowMs = 300000) {
+  const now = Date.now();
+  const record = loginAttempts.get(key) || { count: 0, firstAttempt: now };
+  if (now - record.firstAttempt > windowMs) { record.count = 0; record.firstAttempt = now; }
+  record.count++;
+  loginAttempts.set(key, record);
+  return record.count <= maxAttempts;
+}
+// Clean up rate limit map every 10 minutes
+setInterval(() => { const now = Date.now(); loginAttempts.forEach((v, k) => { if (now - v.firstAttempt > 300000) loginAttempts.delete(k); }); }, 600000);
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Auth ---
@@ -97,6 +124,10 @@ function getToken(req) {
 
 // --- Routes ---
 app.post('/api/login', (req, res) => {
+  const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+  if (!rateLimit(clientIp)) {
+    return res.status(429).json({ ok: false, error: 'Muitas tentativas. Aguarde 5 minutos.' });
+  }
   const { username, password } = req.body;
   if (username === LOGIN_USER && password === LOGIN_PASS) {
     const token = jwt.sign({ user: username }, JWT_SECRET, { expiresIn: '30d' });
@@ -215,15 +246,6 @@ app.get('/api/download/:filename', (req, res) => {
     }
   }
 
-  // Also search /tmp and /root for files created by Claude
-  const extraDirs = ['/tmp', '/root'];
-  for (const dir of extraDirs) {
-    try {
-      const candidate = path.join(dir, filename);
-      if (fs.existsSync(candidate)) return res.download(candidate, filename);
-    } catch {}
-  }
-
   res.status(404).json({ error: 'Arquivo nao encontrado' });
 });
 
@@ -236,7 +258,7 @@ app.get('/api/status', (req, res) => {
 app.get('/api/skills', (req, res) => {
   const token = getToken(req);
   if (!token || !verifyToken(token)) return res.status(401).json({ error: 'Nao autorizado' });
-  const skills = loadSkills().map(s => ({ id: s.id, name: s.name, description: s.description }));
+  const skills = getSkills().map(s => ({ id: s.id, name: s.name, description: s.description }));
   res.json({ ok: true, skills });
 });
 
@@ -254,7 +276,7 @@ app.post('/api/skills/activate', (req, res) => {
     return res.json({ ok: true, active: null });
   }
 
-  const all = loadSkills();
+  const all = getSkills();
   const skill = all.find(s => s.id === skillId);
   if (!skill) return res.status(404).json({ error: 'Skill nao encontrada' });
 
@@ -340,6 +362,7 @@ async function saveMessage(role, content, source = 'web', wsSessionId = null) {
   try {
     await redis.rPush(historyKey, JSON.stringify(msg));
     await redis.lTrim(historyKey, -MAX_HISTORY, -1);
+    await redis.expire(historyKey, 30 * 24 * 3600);
   } catch {}
   return msg;
 }
@@ -591,6 +614,7 @@ function sendToClaude(text, wsSessionId, source = 'web') {
 // --- Telegram message handler ---
 if (bot) {
   bot.on('message:text', async (ctx) => {
+    if (TELEGRAM_CHAT_ID && ctx.from.id.toString() !== TELEGRAM_CHAT_ID) return;
     const text = ctx.message.text;
     const userName = ctx.from.first_name || 'User';
     console.log(`[Telegram] ${userName}: ${text}`);
@@ -603,14 +627,14 @@ if (bot) {
   });
 
   bot.on('message:photo', async (ctx) => {
+    if (TELEGRAM_CHAT_ID && ctx.from.id.toString() !== TELEGRAM_CHAT_ID) return;
     const caption = ctx.message.caption || 'Analise esta imagem';
     const photo = ctx.message.photo[ctx.message.photo.length - 1];
     try {
       const file = await ctx.api.getFile(photo.file_id);
       const url = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
-      const fetch = require('node-fetch');
       const res = await fetch(url);
-      const arrayBuf = await res.buffer();
+      const arrayBuf = Buffer.from(await res.arrayBuffer());
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}.jpg`);
       fs.writeFileSync(filePath, arrayBuf);
       await saveMessage('user', `[Foto] ${caption}`, 'telegram', null);
@@ -622,14 +646,14 @@ if (bot) {
   });
 
   bot.on('message:document', async (ctx) => {
+    if (TELEGRAM_CHAT_ID && ctx.from.id.toString() !== TELEGRAM_CHAT_ID) return;
     const doc = ctx.message.document;
     const caption = ctx.message.caption || `Analise o arquivo ${doc.file_name}`;
     try {
       const file = await ctx.api.getFile(doc.file_id);
       const url = `https://api.telegram.org/file/bot${TELEGRAM_TOKEN}/${file.file_path}`;
-      const fetch = require('node-fetch');
       const res = await fetch(url);
-      const arrayBuf = await res.buffer();
+      const arrayBuf = Buffer.from(await res.arrayBuffer());
       const filePath = path.join(UPLOAD_DIR, `tg-${Date.now()}-${doc.file_name}`);
       fs.writeFileSync(filePath, arrayBuf);
       await saveMessage('user', `[${doc.file_name}] ${caption}`, 'telegram', null);

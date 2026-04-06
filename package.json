@@ -1,10 +1,11 @@
 {
-  "name": "claude-chat",
-  "version": "1.0.0",
-  "description": "Web chat interface for Claude Code CLI",
+  "name": "system-code",
+  "version": "2.0.0",
+  "description": "System Code — Inteligencia Infinita. Premium AI terminal.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -14,8 +15,6 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
-    "node-pty": "^1.0.0",
     "redis": "^4.7.0",
     "uuid": "^11.1.0",
     "ws": "^8.18.0"

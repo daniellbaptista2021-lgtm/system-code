@@ -603,7 +603,7 @@ function renderMd(el, text, streaming) {
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   h = h.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
   h = h.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
-  h = h.replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>' + m + '</ul>');
+  h = h.replace(/((?:<li>[\s\S]*?<\/li>\s*)+)/g, m => '<ul>' + m + '</ul>');
   h = h.replace(/^---$/gm, '<hr>');
   h = h.split('\n\n').map(p => {
     p = p.trim(); if (!p) return '';
@@ -644,25 +644,9 @@ function send() {
 }
 
 async function sendViaAPI(text) {
-  showThinking(true);
-  try {
-    const body = {};
-    body[API_CONFIG.messageField] = text;
-    const r = await fetch(API_CONFIG.endpoint, {
-      method: 'POST',
-      headers: { ...API_CONFIG.headers, Authorization: 'Bearer ' + token },
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-    hideThinking();
-    const response = d[API_CONFIG.responseField] || d.result || d.text || 'Sem resposta.';
-    const el = addMsg('ai', '', 'System Code');
-    renderMd(el.querySelector('.msg-text'), response, false);
-    chatHistory.push({ role: 'assistant', content: response });
-  } catch {
-    hideThinking();
-    addMsg('ai', 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.', 'System Code');
-  }
+  hideThinking();
+  addMsg('ai', 'Conexao perdida. Reconectando...', 'System Code');
+  connect(); // try to reconnect
   isWaiting = false; updateBtn();
 }
 
@@ -862,6 +846,7 @@ function closeSkillsPanel() {
 }
 
 // ── Init ──
+loadHistory();
 connect();
 loadSkillsList();
 msgInput.focus();
