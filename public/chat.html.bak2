@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1c1b18">
 <title>System Code</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -42,8 +42,8 @@
   --radius-lg:16px;
   --radius-xl:26px;
   --transition:0.15s ease;
-  --font:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-  --font-serif:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --font-serif:'Source Serif 4','Georgia',serif;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 }
 html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
@@ -76,7 +76,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .usage-bar span{display:flex;align-items:center;gap:3px}
 
 /* ═══════ MESSAGES ═══════ */
-.messages-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background-image:linear-gradient(45deg,rgba(255,255,255,.012) 25%,transparent 25%),linear-gradient(-45deg,rgba(255,255,255,.012) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(255,255,255,.012) 75%),linear-gradient(-45deg,transparent 75%,rgba(255,255,255,.012) 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+.messages-wrap{flex:1;overflow-y:auto;overflow-x:hidden}
 .messages-wrap::-webkit-scrollbar{width:5px}
 .messages-wrap::-webkit-scrollbar-track{background:transparent}
 .messages-wrap::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:3px}
@@ -180,8 +180,8 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 /* Quick prompt buttons (Melhoria 3) */
 .quick-btns{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px}
-.quick-btn{background:linear-gradient(180deg,#3a3630 0%,#2e2b26 100%);border:1px solid #4a4640;border-bottom:2px solid #1c1b18;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05);text-shadow:0 1px 1px rgba(0,0,0,.3);letter-spacing:.02em}
-.quick-btn:hover{background:linear-gradient(180deg,#4a4640 0%,#3a3630 100%);color:var(--text);border-color:#5a5650;transform:translateY(-1px);box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}.quick-btn:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,.3);border-bottom-width:1px}
+.quick-btn{background:var(--bg-input);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap}
+.quick-btn:hover{background:var(--bg-hover);color:var(--text);border-color:var(--text-muted)}
 
 .input-shell{display:flex;align-items:flex-end;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s}
 .upload-bar.active+.quick-btns+.input-shell,.upload-bar.active~.input-shell{border-radius:0 0 var(--radius-lg) var(--radius-lg);border-top:none}
@@ -285,7 +285,7 @@ input#fileInput{display:none}
       <div class="header-left">
         <div class="model-badge">
           <span class="dot loading" id="dot"></span>
-          Sonnet 4.6
+          System Code Opus
         </div>
       </div>
       <div class="header-right">
@@ -305,7 +305,7 @@ input#fileInput{display:none}
         <div class="welcome" id="welcome">
           <div class="welcome-icon"><img src="/logo.png" alt="System Code"></div>
           <h2>Como posso ajudar?</h2>
-          <p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6b6560;font-family:var(--font)">INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p>
+          <p>Sou o System Code, seu assistente de IA. Pergunte qualquer coisa — estou aqui pra te ajudar.</p>
         </div>
       </div>
     </div>
@@ -319,12 +319,12 @@ input#fileInput{display:none}
         </div>
         <!-- Quick prompt buttons (Melhoria 3) -->
         <div class="quick-btns" id="quickBtns">
-          <button class="quick-btn" data-prompt="Ajuste esta planilha: ">Planilha</button>
-          <button class="quick-btn" data-prompt="Crie uma landing page completa em HTML para: ">Landing Page</button>
-          <button class="quick-btn" data-prompt="Crie um workflow n8n em JSON para: ">n8n Flow</button>
-          <button class="quick-btn" data-prompt="Analise e corrija os erros neste código: ">Corrigir Codigo</button>
-          <button class="quick-btn" data-prompt="Crie um agente WhatsApp com prompt para: ">Agente WhatsApp</button>
-          <button class="quick-btn" data-prompt="Gere um relatório em formato markdown sobre: ">Relatorio</button>
+          <button class="quick-btn" data-prompt="Ajuste esta planilha: ">📊 Planilha</button>
+          <button class="quick-btn" data-prompt="Crie uma landing page completa em HTML para: ">🌐 Landing Page</button>
+          <button class="quick-btn" data-prompt="Crie um workflow n8n em JSON para: ">🔄 n8n Flow</button>
+          <button class="quick-btn" data-prompt="Analise e corrija os erros neste código: ">🐛 Corrigir Código</button>
+          <button class="quick-btn" data-prompt="Crie um agente WhatsApp com prompt para: ">🤖 Agente WhatsApp</button>
+          <button class="quick-btn" data-prompt="Gere um relatório em formato markdown sobre: ">📄 Relatório</button>
         </div>
         <div class="input-shell">
           <textarea id="msgInput" rows="1" placeholder="Mensagem para o System Code..." autocomplete="off"></textarea>
@@ -724,7 +724,7 @@ $('fileInput').addEventListener('change', async function() {
 $('btnCancelUpload').addEventListener('click', () => { $('uploadBar').classList.remove('active'); $('fileInput').value = ''; });
 
 // ── Reset chat ──
-const WELCOME_HTML = `<div class="welcome" id="welcome"><div class="welcome-icon"><img src="/logo.png" alt="System Code"></div><h2>Como posso ajudar?</h2><p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6b6560;font-family:var(--font)">INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p></div>`;
+const WELCOME_HTML = `<div class="welcome" id="welcome"><div class="welcome-icon"><img src="/logo.png" alt="System Code"></div><h2>Como posso ajudar?</h2><p>Sou o System Code, seu assistente de IA. Pergunte qualquer coisa — estou aqui pra te ajudar.</p></div>`;
 
 function resetChat() {
   fetch('/api/reset', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => {});
