@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1c1b18">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
 <title>System Code</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -96,10 +99,10 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .msg-row{display:flex;gap:12px;padding:14px 0;position:relative}
 .msg-row.user{flex-direction:row-reverse}
 
-.msg-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:2px}
+.msg-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:2px}
 .msg-avatar.ai{background:transparent}
-.msg-avatar.ai img{width:28px;height:28px;border-radius:50%;object-fit:contain}
-.msg-avatar.human{background:var(--purple);color:#fff}
+.msg-avatar.ai img{width:38px;height:38px;border-radius:50%;object-fit:contain}
+.msg-avatar.human{background:var(--accent);color:#fff}
 .msg-avatar.tg{background:#38bdf8;color:#fff}
 
 .msg-body{max-width:calc(100% - 46px);min-width:0;flex:1}
@@ -383,7 +386,7 @@ const API_CONFIG = {
 };
 
 // ── Infinity SVG ──
-const INFINITY_SVG = '<img src="/logo.png" alt="System Code" style="width:28px;height:28px;border-radius:50%;object-fit:contain">';
+const INFINITY_SVG = '<img src="/logo.png" alt="System Code" style="width:38px;height:38px;border-radius:50%;object-fit:contain">';
 
 // Elements
 const $ = id => document.getElementById(id);
@@ -863,5 +866,6 @@ connect();
 loadSkillsList();
 msgInput.focus();
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/service-worker.js")}</script>
 </body>
 </html>
