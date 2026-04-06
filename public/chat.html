@@ -232,6 +232,39 @@ textarea#msgInput:focus::placeholder{color:var(--text-muted)}
 
 input#fileInput{display:none}
 
+/* ═══════ SKILLS PANEL ═══════ */
+#skillsPanel{position:fixed;top:0;right:0;bottom:0;width:340px;background:var(--bg-sidebar);border-left:1px solid var(--border-subtle);z-index:200;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column}
+#skillsPanel.open{transform:translateX(0)}
+.skills-header{padding:16px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
+.skills-header h3{font-size:15px;font-weight:600;color:var(--text)}
+.skills-close{background:none;border:none;color:var(--text-faint);font-size:18px;cursor:pointer;padding:4px;transition:color var(--transition)}
+.skills-close:hover{color:var(--text)}
+.skills-list{flex:1;overflow-y:auto;padding:12px}
+.skills-list::-webkit-scrollbar{width:4px}
+.skills-list::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px}
+.skill-card{padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);margin-bottom:8px;cursor:pointer;transition:all var(--transition);background:var(--bg)}
+.skill-card:hover{border-color:var(--border);background:var(--bg-hover)}
+.skill-card.active{border-color:var(--accent);background:rgba(201,100,66,.06)}
+.skill-card-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.skill-icon{font-size:18px;flex-shrink:0}
+.skill-name{font-size:13px;font-weight:600;color:var(--text)}
+.skill-badge{margin-left:auto;font-size:10px;font-weight:600;color:var(--accent);background:rgba(201,100,66,.12);padding:2px 7px;border-radius:4px;border:1px solid rgba(201,100,66,.2);flex-shrink:0}
+.skill-desc{font-size:12px;color:var(--text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.skills-footer{padding:14px 18px;border-top:1px solid var(--border-subtle)}
+.btn-deactivate{width:100%;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:9px;font-size:13px;cursor:pointer;font-family:var(--font);transition:all var(--transition)}
+.btn-deactivate:hover{border-color:#ef4444;color:#ef4444}
+.skills-overlay{position:fixed;inset:0;z-index:199;display:none}
+.skills-overlay.open{display:block}
+
+/* Active skill badge in header */
+.active-skill-tag{font-size:11px;color:var(--accent);background:rgba(201,100,66,.1);border:1px solid rgba(201,100,66,.2);padding:3px 9px;border-radius:5px;cursor:pointer;transition:all var(--transition);display:none;align-items:center;gap:5px}
+.active-skill-tag.show{display:flex}
+.active-skill-tag:hover{background:rgba(201,100,66,.18)}
+
+@media(max-width:768px){
+  #skillsPanel{width:100%;max-width:340px}
+}
+
 /* ═══════ ERROR MODAL (Melhoria 8) ═══════ */
 #errorModal{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
 #errorModal.open{display:flex}
@@ -315,6 +348,10 @@ input#fileInput{display:none}
       </div>
       <div class="header-right">
         <div class="usage-bar" id="usageBar"></div>
+        <div class="active-skill-tag" id="activeSkillTag" onclick="openSkillsPanel()"></div>
+        <button class="btn-skills" id="btnSkills" onclick="openSkillsPanel()" title="Skills" style="background:none;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--font);transition:all var(--transition);display:flex;align-items:center;gap:5px">
+          <i class="fas fa-wand-magic-sparkles"></i> Skills
+        </button>
         <div class="pro-badge">Pro</div>
       </div>
     </div>
@@ -359,6 +396,25 @@ input#fileInput{display:none}
 
     <input type="file" id="fileInput" accept="image/*,application/pdf,.txt,.csv,.json,.zip">
   </main>
+</div>
+
+<!-- Skills overlay -->
+<div class="skills-overlay" id="skillsOverlay" onclick="closeSkillsPanel()"></div>
+
+<!-- Skills Panel -->
+<div id="skillsPanel">
+  <div class="skills-header">
+    <h3><i class="fas fa-wand-magic-sparkles" style="color:var(--accent);margin-right:7px"></i>Skills disponíveis</h3>
+    <button class="skills-close" onclick="closeSkillsPanel()">&#10005;</button>
+  </div>
+  <div class="skills-list" id="skillsList">
+    <div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px">Carregando skills...</div>
+  </div>
+  <div class="skills-footer">
+    <button class="btn-deactivate" id="btnDeactivate" onclick="deactivateSkill()">
+      <i class="fas fa-xmark"></i> Desativar skill ativa
+    </button>
+  </div>
 </div>
 
 <!-- Error Modal (Melhoria 8) -->
@@ -871,9 +927,112 @@ async function loadHistory() {
   updateSidebarList();
 }
 
+// ── Skills (integração das skills clonadas) ──
+const SKILL_ICONS = {
+  'content-humanizer': '✍️',
+  'landing-page-generator': '🌐',
+  'paid-ads': '📢',
+  'ad-creative': '🎨',
+  'agent-designer': '🤖',
+  'mcp-server-builder': '🔧',
+  'campaign-analytics': '📊',
+  'copywriting': '📝',
+  'saas-metrics-coach': '💰',
+};
+
+let allSkills = [];
+let activeSkillId = null;
+
+async function loadSkillsList() {
+  try {
+    const r = await fetch('/api/skills', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    if (!d.ok) return;
+    allSkills = d.skills;
+    renderSkillsList();
+  } catch {
+    $('skillsList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px">Erro ao carregar skills.</div>';
+  }
+}
+
+function renderSkillsList() {
+  const listEl = $('skillsList');
+  if (!allSkills.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:13px">Nenhuma skill disponível.</div>';
+    return;
+  }
+  listEl.innerHTML = allSkills.map(s => {
+    const icon = SKILL_ICONS[s.id] || '⚡';
+    const isActive = s.id === activeSkillId;
+    return `<div class="skill-card${isActive ? ' active' : ''}" onclick="activateSkill('${esc(s.id)}','${esc(s.name)}')">
+      <div class="skill-card-top">
+        <span class="skill-icon">${icon}</span>
+        <span class="skill-name">${esc(s.name)}</span>
+        ${isActive ? '<span class="skill-badge">ATIVA</span>' : ''}
+      </div>
+      <div class="skill-desc">${esc(s.description)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function activateSkill(skillId, skillName) {
+  // Toggle off if already active
+  if (activeSkillId === skillId) {
+    await deactivateSkill();
+    return;
+  }
+  try {
+    const r = await fetch('/api/skills/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ skillId })
+    });
+    const d = await r.json();
+    if (!d.ok) return;
+    activeSkillId = skillId;
+    // Update header badge
+    const icon = SKILL_ICONS[skillId] || '⚡';
+    const tag = $('activeSkillTag');
+    tag.innerHTML = `${icon} ${esc(skillName)} <i class="fas fa-xmark" style="font-size:9px;opacity:.7"></i>`;
+    tag.classList.add('show');
+    // Show confirmation in chat
+    addMsg('ai', `✅ Skill **${skillName}** ativada. Suas próximas mensagens usarão as instruções desta skill.`, 'System Code');
+    renderSkillsList();
+    closeSkillsPanel();
+  } catch {}
+}
+
+async function deactivateSkill() {
+  try {
+    await fetch('/api/skills/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ skillId: null })
+    });
+    activeSkillId = null;
+    $('activeSkillTag').classList.remove('show');
+    $('activeSkillTag').innerHTML = '';
+    renderSkillsList();
+    addMsg('ai', '⭕ Skill desativada. Voltando ao modo padrão.', 'System Code');
+    closeSkillsPanel();
+  } catch {}
+}
+
+function openSkillsPanel() {
+  $('skillsPanel').classList.add('open');
+  $('skillsOverlay').classList.add('open');
+  if (!allSkills.length) loadSkillsList();
+}
+
+function closeSkillsPanel() {
+  $('skillsPanel').classList.remove('open');
+  $('skillsOverlay').classList.remove('open');
+}
+
 // ── Init ──
 loadHistory().then(connect);
 updateSidebarList();
+loadSkillsList();
 msgInput.focus();
 </script>
 </body>

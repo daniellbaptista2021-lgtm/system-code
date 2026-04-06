@@ -25,8 +25,30 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7579372831';
 const SESSION_KEY = 'claude-chat:session';
 const MAX_HISTORY = 200;
 const MAX_CONCURRENT_SESSIONS = 5;
+const SKILLS_DIR = path.join(process.env.HOME || '/root', '.claude', 'skills');
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+// --- Skills loader ---
+function loadSkills() {
+  const skills = [];
+  if (!fs.existsSync(SKILLS_DIR)) return skills;
+  const dirs = fs.readdirSync(SKILLS_DIR).filter(d => {
+    try { return fs.statSync(path.join(SKILLS_DIR, d)).isDirectory(); } catch { return false; }
+  });
+  for (const dir of dirs) {
+    const skillFile = path.join(SKILLS_DIR, dir, 'SKILL.md');
+    if (!fs.existsSync(skillFile)) continue;
+    const content = fs.readFileSync(skillFile, 'utf8');
+    // Extract name and description from frontmatter
+    const nameMatch = content.match(/^name:\s*["']?(.+?)["']?\s*$/m);
+    const descMatch = content.match(/^description:\s*["']?([\s\S]+?)["']?\s*$/m);
+    const name = nameMatch ? nameMatch[1].trim() : dir;
+    const description = descMatch ? descMatch[1].trim().substring(0, 200) : '';
+    skills.push({ id: dir, name, description, content });
+  }
+  return skills;
+}
 
 // --- Session maps ---
 // wsSessionId -> { claudeSessionId, isProcessing, queue, ws, uploadDir, token, proc }
@@ -36,7 +58,7 @@ const sessions = new Map();
 const tokenToSessionId = new Map();
 
 // Telegram has its own persistent session
-const telegramSession = { claudeSessionId: null, isProcessing: false, queue: [], proc: null };
+const telegramSession = { claudeSessionId: null, isProcessing: false, queue: [], proc: null, activeSkill: null };
 
 // --- Redis ---
 const redis = createClient({ url: REDIS_URL });
@@ -210,6 +232,37 @@ app.get('/api/status', (req, res) => {
   res.json({ sessions: sessions.size, max: MAX_CONCURRENT_SESSIONS, ok: true });
 });
 
+// Skills endpoints
+app.get('/api/skills', (req, res) => {
+  const token = getToken(req);
+  if (!token || !verifyToken(token)) return res.status(401).json({ error: 'Nao autorizado' });
+  const skills = loadSkills().map(s => ({ id: s.id, name: s.name, description: s.description }));
+  res.json({ ok: true, skills });
+});
+
+app.post('/api/skills/activate', (req, res) => {
+  const token = getToken(req);
+  if (!token || !verifyToken(token)) return res.status(401).json({ error: 'Nao autorizado' });
+  const { skillId } = req.body;
+  const wsSessionId = tokenToSessionId.get(token);
+  if (!wsSessionId || !sessions.has(wsSessionId)) return res.status(400).json({ error: 'Sessao nao encontrada' });
+
+  const sess = sessions.get(wsSessionId);
+  if (!skillId) {
+    sess.activeSkill = null;
+    console.log(`[Skills] Deactivated for wsSessionId=${wsSessionId}`);
+    return res.json({ ok: true, active: null });
+  }
+
+  const all = loadSkills();
+  const skill = all.find(s => s.id === skillId);
+  if (!skill) return res.status(404).json({ error: 'Skill nao encontrada' });
+
+  sess.activeSkill = skill;
+  console.log(`[Skills] Activated: ${skill.name} for wsSessionId=${wsSessionId}`);
+  res.json({ ok: true, active: { id: skill.id, name: skill.name } });
+});
+
 // Saved sessions endpoints (Melhoria 5)
 app.post('/api/sessions/save', async (req, res) => {
   const token = getToken(req);
@@ -347,6 +400,13 @@ function sendToClaude(text, wsSessionId, source = 'web') {
     sendToSession({ type: 'typing', active: true, source });
     console.log(`[Claude] Processing wsSessionId=${wsSessionId} (${source}): ${text.substring(0, 80)}...`);
 
+    // Prepend active skill context if set
+    let fullText = text;
+    if (sessCtx.activeSkill) {
+      fullText = `[SKILL CONTEXT - follow these instructions for this response]\n\n${sessCtx.activeSkill.content}\n\n[END SKILL CONTEXT]\n\nUser request: ${text}`;
+      console.log(`[Skills] Injecting skill: ${sessCtx.activeSkill.name}`);
+    }
+
     const args = ['-p', '--output-format', 'stream-json', '--verbose'];
     if (sessCtx.claudeSessionId) {
       args.push('--resume', sessCtx.claudeSessionId);
@@ -362,7 +422,7 @@ function sendToClaude(text, wsSessionId, source = 'web') {
     // Store proc reference for cancel support (Melhoria 2)
     sessCtx.proc = proc;
 
-    proc.stdin.write(text);
+    proc.stdin.write(fullText);
     proc.stdin.end();
 
     // Watchdog: kill if no output for 60s (Melhoria 7)
@@ -614,7 +674,8 @@ wss.on('connection', (ws, req) => {
     ws,
     uploadDir: sessionUploadDir,
     token,
-    proc: null
+    proc: null,
+    activeSkill: null
   });
 
   tokenToSessionId.set(token, wsSessionId);
