@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1c1b18">
+<meta name="theme-color" content="#f5f0e8">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/favicon.png">
@@ -16,40 +16,55 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#292521;
-  --bg-sidebar:#1c1b18;
-  --bg-sidebar-hover:#2a2825;
-  --bg-sidebar-active:#302d28;
-  --bg-input:#302d28;
-  --bg-code:#1e1c19;
-  --bg-code-header:#252320;
-  --bg-hover:#332f2a;
-  --bg-user-msg:#3d3929;
-  --text:#d4d0c8;
-  --text-secondary:#9b9586;
-  --text-muted:#6b6560;
-  --text-faint:#524e48;
-  --border:#3a3630;
-  --border-subtle:#2e2b26;
+  --bg:transparent;
+  --bg-sidebar:rgba(240,232,218,0.88);
+  --bg-sidebar-hover:rgba(232,222,206,0.92);
+  --bg-sidebar-active:rgba(222,210,193,0.95);
+  --bg-input:rgba(255,255,255,0.62);
+  --bg-code:rgba(238,230,218,0.85);
+  --bg-code-header:rgba(228,220,206,0.9);
+  --bg-hover:rgba(60,30,10,0.06);
+  --bg-user-msg:rgba(201,100,66,0.07);
+  --text:#3d1f0e;
+  --text-secondary:#6b4535;
+  --text-muted:#8a6a58;
+  --text-faint:#b09078;
+  --border:rgba(175,135,108,0.28);
+  --border-subtle:rgba(175,135,108,0.16);
   --accent:#c96442;
   --accent-light:#d97a5a;
   --accent-dim:#a8523a;
-  --green:#5ba855;
+  --green:#3d8c38;
   --purple:#6c5ce7;
-  --scrollbar:#3a3630;
-  --scrollbar-hover:#4a4640;
-  --shadow:0 4px 12px rgba(0,0,0,.2);
-  --shadow-lg:0 8px 30px rgba(0,0,0,.35);
+  --scrollbar:rgba(175,135,108,0.25);
+  --scrollbar-hover:rgba(175,135,108,0.45);
+  --shadow:0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.12);
   --radius-sm:8px;
   --radius-md:12px;
-  --radius-lg:16px;
+  --radius-lg:20px;
   --radius-xl:26px;
   --transition:0.15s ease;
   --font:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --font-serif:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 }
-html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+html,body{
+  height:100%;
+  font-family:var(--font);
+  background:
+    radial-gradient(ellipse at -8% -8%, rgba(210,122,100,0.62) 0%, transparent 44%),
+    radial-gradient(ellipse at 108% -6%, rgba(208,132,112,0.52) 0%, transparent 42%),
+    radial-gradient(ellipse at 8% 68%, rgba(222,162,90,0.46) 0%, transparent 48%),
+    radial-gradient(ellipse at 88% 88%, rgba(215,152,132,0.58) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 48%, rgba(238,228,155,0.42) 0%, transparent 54%),
+    #f5f0e8;
+  background-attachment:fixed;
+  color:var(--text);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility}
 #app{display:flex;height:100%}
 
 /* ═══════ SIDEBAR — removida ═══════ */
@@ -63,7 +78,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
 
 /* Header */
-.header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid rgba(175,135,108,0.18);flex-shrink:0;background:rgba(245,240,232,0.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .header-left{display:flex;align-items:center;gap:10px}
 .model-badge{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:500;color:var(--text)}
 .model-badge .dot{width:7px;height:7px;border-radius:50%;transition:background .3s}
@@ -79,7 +94,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .usage-bar span{display:flex;align-items:center;gap:3px}
 
 /* ═══════ MESSAGES ═══════ */
-.messages-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background-image:linear-gradient(45deg,rgba(255,255,255,.012) 25%,transparent 25%),linear-gradient(-45deg,rgba(255,255,255,.012) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(255,255,255,.012) 75%),linear-gradient(-45deg,transparent 75%,rgba(255,255,255,.012) 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}
+.messages-wrap{flex:1;overflow-y:auto;overflow-x:hidden;background:transparent}
 .messages-wrap::-webkit-scrollbar{width:5px}
 .messages-wrap::-webkit-scrollbar-track{background:transparent}
 .messages-wrap::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:3px}
@@ -90,9 +105,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 /* Welcome */
 .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;animation:fadeUp .5s ease}
 .welcome-icon{display:flex;align-items:center;justify-content:center;margin-bottom:22px}
-.welcome-icon img{height:56px}
-.welcome h2{font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px;letter-spacing:-.02em;font-family:var(--font)}
-.welcome p{font-size:15px;color:var(--text-muted);max-width:400px;text-align:center;line-height:1.65;font-family:var(--font-serif)}
+.welcome-icon img{height:72px}
+.welcome h2{font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.02em;font-family:var(--font)}
+.welcome p{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);max-width:420px;text-align:center;line-height:1.65;font-family:var(--font)}
 
 /* Message */
 .message{opacity:0;animation:msgIn .35s ease forwards;margin-bottom:2px}
@@ -131,12 +146,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .msg-text em{color:var(--text-secondary);font-style:italic}
 .msg-text a{color:var(--accent-light);text-decoration:none;border-bottom:1px solid transparent;transition:border-color var(--transition)}
 .msg-text a:hover{border-bottom-color:var(--accent-light)}
-.msg-text code{background:var(--bg-code);padding:2px 7px;border-radius:5px;font-size:13px;font-family:var(--mono);color:#d4d0c8}
+.msg-text code{background:var(--bg-code);padding:2px 7px;border-radius:5px;font-size:13px;font-family:var(--mono);color:var(--text)}
 .msg-text pre{background:var(--bg-code);border-radius:var(--radius-md);margin:14px 0;overflow:hidden;border:1px solid var(--border-subtle)}
 .msg-text pre .code-head{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg-code-header);border-bottom:1px solid var(--border-subtle);font-size:12px;color:var(--text-faint);font-family:var(--font)}
 .msg-text pre .code-head .btn-cp{background:none;border:1px solid var(--border);color:var(--text-faint);padding:2px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--font);transition:all var(--transition)}
 .msg-text pre .code-head .btn-cp:hover{color:var(--text);border-color:var(--text-muted)}
-.msg-text pre code{display:block;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;color:#c8c4bc;background:none;border-radius:0}
+.msg-text pre code{display:block;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--text-secondary);background:none;border-radius:0}
 .msg-text blockquote{border-left:3px solid var(--accent-dim);padding:2px 0 2px 16px;margin:10px 0;color:var(--text-secondary)}
 .msg-text ul,.msg-text ol{margin:8px 0;padding-left:22px}
 .msg-text li{margin-bottom:4px}
@@ -183,12 +198,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 
 /* Quick prompt buttons (Melhoria 3) */
 .quick-btns{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px}
-.quick-btn{background:linear-gradient(180deg,#3a3630 0%,#2e2b26 100%);border:1px solid #4a4640;border-bottom:2px solid #1c1b18;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.05);text-shadow:0 1px 1px rgba(0,0,0,.3);letter-spacing:.02em}
-.quick-btn:hover{background:linear-gradient(180deg,#4a4640 0%,#3a3630 100%);color:var(--text);border-color:#5a5650;transform:translateY(-1px);box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}.quick-btn:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(0,0,0,.3);border-bottom-width:1px}
+.quick-btn{background:rgba(255,255,255,0.55);border:1px solid rgba(175,135,108,0.32);border-radius:20px;padding:7px 18px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.06);letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.quick-btn:hover{background:rgba(255,255,255,0.78);border-color:rgba(175,135,108,0.5);transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.1)}.quick-btn:active{transform:translateY(0);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 
-.input-shell{display:flex;align-items:flex-end;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s}
-.upload-bar.active+.quick-btns+.input-shell,.upload-bar.active~.input-shell{border-radius:0 0 var(--radius-lg) var(--radius-lg);border-top:none}
-.input-shell:focus-within{border-color:var(--accent-dim);box-shadow:0 0 0 1px rgba(201,100,66,.1)}
+.input-shell{display:flex;align-items:flex-end;background:rgba(255,255,255,0.62);border:1px solid rgba(175,135,108,0.28);border-radius:28px;padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.upload-bar.active+.quick-btns+.input-shell,.upload-bar.active~.input-shell{border-radius:0 0 28px 28px;border-top:none}
+.input-shell:focus-within{border-color:rgba(201,100,66,0.45);box-shadow:0 0 0 2px rgba(201,100,66,.1),0 2px 12px rgba(0,0,0,.07)}
 
 textarea#msgInput{flex:1;background:none;border:none;color:var(--text);font-size:15px;font-family:var(--font);resize:none;outline:none;line-height:1.5;max-height:180px;min-height:24px;padding:10px 0;letter-spacing:-.005em}
 textarea#msgInput::placeholder{color:var(--text-faint);transition:color var(--transition)}
@@ -198,7 +213,7 @@ textarea#msgInput:focus::placeholder{color:var(--text-muted)}
 .btn-attach{width:34px;height:34px;border-radius:50%;background:none;border:none;color:var(--text-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all var(--transition)}
 .btn-attach:hover{color:var(--text);background:var(--bg-hover)}
 
-.btn-send{width:34px;height:34px;border-radius:50%;background:var(--text);border:none;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all var(--transition)}
+.btn-send{width:36px;height:36px;border-radius:50%;background:var(--text);border:none;color:#f5f0e8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all var(--transition)}
 .btn-send:hover{opacity:.85;transform:scale(1.05)}
 .btn-send:active{transform:scale(.95)}
 .btn-send:disabled{opacity:.15;cursor:not-allowed;transform:none}
@@ -246,7 +261,7 @@ input#fileInput{display:none}
 }
 
 /* ═══════ ERROR MODAL (Melhoria 8) ═══════ */
-#errorModal{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#errorModal{position:fixed;inset:0;z-index:999;background:rgba(61,31,14,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
 #errorModal.open{display:flex}
 .error-card{background:var(--bg-sidebar);border-radius:12px;padding:24px;max-width:360px;width:90%;text-align:center;border:1px solid var(--border)}
 .error-card h3{font-size:16px;font-weight:600;margin-bottom:10px;color:var(--text)}
@@ -306,9 +321,9 @@ input#fileInput{display:none}
     <div class="messages-wrap" id="messagesWrap">
       <div class="messages-inner" id="messages">
         <div class="welcome" id="welcome">
-          <div class="welcome-icon"><img src="/logo.png" alt="System Code"></div>
+          <div class="welcome-icon"><img src="/logo_nobg.png" alt="System Code"></div>
           <h2>Como posso ajudar?</h2>
-          <p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6b6560;font-family:var(--font)">INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p>
+          <p>INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p>
         </div>
       </div>
     </div>
@@ -386,7 +401,7 @@ const API_CONFIG = {
 };
 
 // ── Infinity SVG ──
-const INFINITY_SVG = '<img src="/logo.png" alt="System Code" style="width:38px;height:38px;border-radius:50%;object-fit:contain">';
+const INFINITY_SVG = '<img src="/logo_nobg.png" alt="System Code" style="width:38px;height:38px;border-radius:50%;object-fit:contain">';
 
 // Elements
 const $ = id => document.getElementById(id);
@@ -711,7 +726,7 @@ $('fileInput').addEventListener('change', async function() {
 $('btnCancelUpload').addEventListener('click', () => { $('uploadBar').classList.remove('active'); $('fileInput').value = ''; });
 
 // ── Reset chat ──
-const WELCOME_HTML = `<div class="welcome" id="welcome"><div class="welcome-icon"><img src="/logo.png" alt="System Code"></div><h2>Como posso ajudar?</h2><p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#6b6560;font-family:var(--font)">INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p></div>`;
+const WELCOME_HTML = `<div class="welcome" id="welcome"><div class="welcome-icon"><img src="/logo_nobg.png" alt="System Code"></div><h2>Como posso ajudar?</h2><p>INTELIG&#xCA;NCIA INFINITA &bull; POSSIBILIDADES PREMIUM</p></div>`;
 
 function resetChat() {
   fetch('/api/reset', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(() => {});

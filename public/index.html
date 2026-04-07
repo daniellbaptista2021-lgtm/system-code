@@ -7,32 +7,47 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/favicon.png">
-<meta name="theme-color" content="#1c1b18">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#f5f0e8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#1c1b18;color:#d4d0c8;height:100vh;display:flex;align-items:center;justify-content:center;-webkit-font-smoothing:antialiased}
-.card{width:92%;max-width:380px;animation:up .4s ease}
-.logo{display:flex;align-items:center;justify-content:center;margin-bottom:36px}
-.logo img{height:48px}
+body{
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+  background:
+    radial-gradient(ellipse at -8% -8%, rgba(210,122,100,0.62) 0%, transparent 44%),
+    radial-gradient(ellipse at 108% -6%, rgba(208,132,112,0.52) 0%, transparent 42%),
+    radial-gradient(ellipse at 8% 68%, rgba(222,162,90,0.46) 0%, transparent 48%),
+    radial-gradient(ellipse at 88% 88%, rgba(215,152,132,0.58) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 48%, rgba(238,228,155,0.42) 0%, transparent 54%),
+    #f5f0e8;
+  color:#3d1f0e;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  -webkit-font-smoothing:antialiased
+}
+.card{width:92%;max-width:380px;animation:up .4s ease;background:rgba(255,255,255,0.55);border:1px solid rgba(175,135,108,0.22);border-radius:20px;padding:36px 32px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.1)}
+.logo{display:flex;align-items:center;justify-content:center;margin-bottom:32px}
+.logo img{height:52px}
 .field{margin-bottom:16px}
-.field label{display:block;font-size:13px;font-weight:500;color:#9b9586;margin-bottom:6px}
-.field input{width:100%;padding:12px 14px;border:1px solid #3a3630;border-radius:10px;background:#292521;color:#d4d0c8;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s}
-.field input:focus{border-color:#c96442}
-.field input::placeholder{color:#6b6560}
-.btn{width:100%;padding:13px;border:none;border-radius:10px;background:#d4d0c8;color:#1c1b18;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;transition:opacity .15s}
+.field label{display:block;font-size:13px;font-weight:500;color:#8a6a58;margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;border:1px solid rgba(175,135,108,0.28);border-radius:12px;background:rgba(255,255,255,0.6);color:#3d1f0e;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.field input:focus{border-color:rgba(201,100,66,0.5);box-shadow:0 0 0 2px rgba(201,100,66,.1)}
+.field input::placeholder{color:#b09078}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;background:#3d1f0e;color:#f5f0e8;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;transition:opacity .15s}
 .btn:hover{opacity:.85}
 .btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.3;cursor:not-allowed}
-.err{color:#ef4444;font-size:13px;text-align:center;margin-top:14px;display:none}
-.sub{text-align:center;margin-top:20px;font-size:12px;color:#524e48}
+.err{color:#c0392b;font-size:13px;text-align:center;margin-top:14px;display:none}
+.sub{text-align:center;margin-top:20px;font-size:12px;color:#b09078}
 @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">
-    <img src="/logo.png" alt="System Code">
+    <img src="/logo_nobg.png" alt="System Code">
   </div>
   <form id="f">
     <div class="field">

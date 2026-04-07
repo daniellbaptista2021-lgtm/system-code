@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLOW - Promo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .card {
+    width: 420px;
+    min-height: 580px;
+    background: radial-gradient(ellipse at top, #1a0033 0%, #0a0015 40%, #000000 100%);
+    border: 1px solid rgba(180, 0, 255, 0.25);
+    border-radius: 24px;
+    padding: 48px 40px 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 0 60px rgba(160, 0, 255, 0.15),
+      0 0 120px rgba(0, 200, 255, 0.05),
+      inset 0 0 80px rgba(120, 0, 200, 0.08);
+  }
+
+  /* Ambient glow blobs */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(180, 0, 255, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(0, 200, 255, 0.10) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── INFINITY LOGO ── */
+  .logo-wrap {
+    position: relative;
+    width: 160px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 18px rgba(180, 0, 255, 0.9))
+            drop-shadow(0 0 40px rgba(0, 200, 255, 0.5));
+  }
+
+  .infinity-svg {
+    width: 160px;
+    height: 90px;
+  }
+
+  /* ── TITLE ── */
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 12px;
+    color: #fff;
+    text-shadow:
+      0 0 8px #fff,
+      0 0 20px rgba(180, 0, 255, 1),
+      0 0 40px rgba(180, 0, 255, 0.8),
+      0 0 80px rgba(0, 200, 255, 0.5),
+      0 0 120px rgba(180, 0, 255, 0.3);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── TAGLINE ── */
+  .tagline {
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(220, 200, 255, 0.85);
+    letter-spacing: 0.5px;
+    text-align: center;
+    text-shadow: 0 0 12px rgba(180, 0, 255, 0.4);
+    position: relative;
+    z-index: 1;
+    margin-top: -10px;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(180, 0, 255, 0.6), rgba(0, 200, 255, 0.6), transparent);
+    box-shadow: 0 0 8px rgba(180, 0, 255, 0.4);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── FEATURES LIST ── */
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(180, 0, 255, 0.15);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(180,0,255,0.05) 0%, transparent 100%);
+    border-radius: 12px;
+  }
+
+  .icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .icon-1 {
+    background: radial-gradient(circle, rgba(255, 50, 255, 0.25), rgba(180,0,255,0.1));
+    border: 1px solid rgba(255, 50, 255, 0.5);
+    box-shadow: 0 0 12px rgba(255, 50, 255, 0.4), inset 0 0 8px rgba(255, 50, 255, 0.1);
+    color: #ff44ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    text-shadow: 0 0 8px #ff44ff, 0 0 16px #ff00ff;
+  }
+
+  .icon-2 {
+    background: radial-gradient(circle, rgba(0, 200, 255, 0.25), rgba(0,150,200,0.1));
+    border: 1px solid rgba(0, 200, 255, 0.5);
+    box-shadow: 0 0 12px rgba(0, 200, 255, 0.4), inset 0 0 8px rgba(0, 200, 255, 0.1);
+    color: #00ccff;
+    text-shadow: 0 0 8px #00ccff, 0 0 16px #00aaff;
+  }
+
+  .icon-3 {
+    background: radial-gradient(circle, rgba(180, 0, 255, 0.25), rgba(120,0,180,0.1));
+    border: 1px solid rgba(180, 0, 255, 0.5);
+    box-shadow: 0 0 12px rgba(180, 0, 255, 0.4), inset 0 0 8px rgba(180,0,255,0.1);
+    color: #cc44ff;
+    text-shadow: 0 0 8px #cc44ff;
+  }
+
+  .icon-4 {
+    background: radial-gradient(circle, rgba(0, 255, 180, 0.2), rgba(0,180,120,0.1));
+    border: 1px solid rgba(0, 255, 180, 0.45);
+    box-shadow: 0 0 12px rgba(0, 255, 180, 0.35), inset 0 0 8px rgba(0,255,180,0.1);
+    color: #00ffb4;
+    text-shadow: 0 0 8px #00ffb4;
+  }
+
+  .feature-text {
+    font-size: 13.5px;
+    font-weight: 400;
+    color: rgba(240, 230, 255, 0.92);
+    letter-spacing: 0.3px;
+    line-height: 1.4;
+    text-shadow: 0 0 6px rgba(180, 0, 255, 0.2);
+  }
+
+  .feature-text strong {
+    color: #fff;
+    font-weight: 600;
+    text-shadow:
+      0 0 6px rgba(255, 80, 255, 0.7),
+      0 0 14px rgba(180, 0, 255, 0.4);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Infinity Logo SVG -->
+  <div class="logo-wrap">
+    <svg class="infinity-svg" viewBox="0 0 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff00ff"/>
+          <stop offset="35%" stop-color="#cc00ff"/>
+          <stop offset="65%" stop-color="#0066ff"/>
+          <stop offset="100%" stop-color="#00ccff"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="7" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Outer glow pass -->
+      <path d="M80,45 C80,45 68,20 45,20 C22,20 10,32 10,45 C10,58 22,70 45,70 C68,70 80,45 80,45 C80,45 92,20 115,20 C138,20 150,32 150,45 C150,58 138,70 115,70 C92,70 80,45 80,45 Z"
+        stroke="url(#g1)" stroke-width="14" fill="none" opacity="0.25" filter="url(#glow2)"/>
+      <!-- Main stroke -->
+      <path d="M80,45 C80,45 68,20 45,20 C22,20 10,32 10,45 C10,58 22,70 45,70 C68,70 80,45 80,45 C80,45 92,20 115,20 C138,20 150,32 150,45 C150,58 138,70 115,70 C92,70 80,45 80,45 Z"
+        stroke="url(#g1)" stroke-width="8" fill="none" stroke-linecap="round" filter="url(#glow)"/>
+      <!-- Bright inner highlight -->
+      <path d="M80,45 C80,45 68,28 45,28 C28,28 18,35 18,45 C18,55 28,62 45,62 C68,62 80,45 80,45 C80,45 92,28 115,28 C132,28 142,35 142,45 C142,55 132,62 115,62 C92,62 80,45 80,45 Z"
+        stroke="rgba(255,255,255,0.35)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- Title -->
+  <div class="title">CLOW</div>
+
+  <!-- Tagline -->
+  <div class="tagline">Agente de código AI no terminal e web</div>
+
+  <div class="divider"></div>
+
+  <!-- Features -->
+  <div class="features">
+
+    <div class="feature">
+      <div class="icon icon-1">33</div>
+      <div class="feature-text">
+        <strong>33 tools + 108 skills</strong> + 5 tipos de agente
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="icon icon-2">⬡</div>
+      <div class="feature-text">
+        <strong>Multi-provider:</strong> Claude / Dashboard..
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="icon icon-3">⟳</div>
+      <div class="feature-text">
+        <strong>Pipelines, Cron Jobs, Triggers</strong>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="icon icon-4">◈</div>
+      <div class="feature-text">
+        <strong>Streaming</strong> em tempo real
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
