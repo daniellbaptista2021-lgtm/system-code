@@ -105,7 +105,7 @@ html,body{
 /* Welcome */
 .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;animation:fadeUp .5s ease}
 .welcome-icon{display:flex;align-items:center;justify-content:center;margin-bottom:22px}
-.welcome-icon img{height:72px}
+.welcome-icon img{height:72px;max-width:calc(100vw - 48px);object-fit:contain}
 .welcome h2{font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.02em;font-family:var(--font)}
 .welcome p{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);max-width:420px;text-align:center;line-height:1.65;font-family:var(--font)}
 
@@ -183,6 +183,16 @@ html,body{
 /* File download card (Melhoria 4) */
 .file-download{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-top:8px;display:inline-flex;align-items:center;gap:8px;font-size:13px}
 .file-download i{color:var(--text-muted)}
+
+/* Tool call / result blocks */
+.tool-call{background:#1a1917;border-left:2px solid var(--accent);border-radius:6px;padding:7px 12px;margin:4px 0;font-family:'Courier New',monospace;font-size:12px;color:var(--text-muted);animation:fadeUp .2s ease}
+.tool-call .tool-icon{color:var(--accent);margin-right:6px}
+.tool-call .tool-name{color:#e8a87c;font-weight:600;margin-right:8px}
+.tool-call .tool-input{margin-top:4px;padding-left:16px;opacity:.75;word-break:break-all}
+.tool-call .tool-key{color:#7dd3fc}
+.tool-call .tool-val{color:#a5f3a5}
+.tool-result{background:#141412;border-left:2px solid #4a5568;border-radius:6px;padding:5px 12px;margin:2px 0 6px 0;font-family:'Courier New',monospace;font-size:11px;color:#6b7280;animation:fadeUp .2s ease;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.tool-result .tool-icon{margin-right:6px;color:#4a5568}
 .file-download a{color:var(--accent);font-weight:500;text-decoration:none}
 .file-download a:hover{color:var(--accent-light)}
 
@@ -198,10 +208,10 @@ html,body{
 
 /* Quick prompt buttons (Melhoria 3) */
 .quick-btns{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px}
-.quick-btn{background:rgba(255,255,255,0.55);border:1px solid rgba(175,135,108,0.32);border-radius:20px;padding:7px 18px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.06);letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.quick-btn{background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.16);border-radius:20px;padding:7px 18px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all var(--transition);font-family:var(--font);white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.06);letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .quick-btn:hover{background:rgba(255,255,255,0.78);border-color:rgba(175,135,108,0.5);transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.1)}.quick-btn:active{transform:translateY(0);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 
-.input-shell{display:flex;align-items:flex-end;background:rgba(255,255,255,0.62);border:1px solid rgba(175,135,108,0.28);border-radius:28px;padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.input-shell{display:flex;align-items:flex-end;background:rgba(255,255,255,0.62);border:1px solid rgba(0,0,0,0.18);border-radius:28px;padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 12px rgba(0,0,0,.07)}
 .upload-bar.active+.quick-btns+.input-shell,.upload-bar.active~.input-shell{border-radius:0 0 28px 28px;border-top:none}
 .input-shell:focus-within{border-color:rgba(201,100,66,0.45);box-shadow:0 0 0 2px rgba(201,100,66,.1),0 2px 12px rgba(0,0,0,.07)}
 
@@ -463,6 +473,25 @@ function handleMsg(m) {
     if (thinkEl) {
       thinkEl.innerHTML = `<div class="thinking-inner"><div class="msg-avatar ai">${INFINITY_SVG}</div><div class="thinking-dots"><span></span><span></span><span></span></div><div class="thinking-label">Pensando...</div></div>`;
     }
+  }
+
+  if (m.type === 'tool_use') {
+    const inputStr = m.input && Object.keys(m.input).length
+      ? Object.entries(m.input).map(([k,v]) => `<span class="tool-key">${esc(k)}</span>: <span class="tool-val">${esc(String(v).substring(0, 120))}</span>`).join('  ')
+      : '';
+    const toolEl = document.createElement('div');
+    toolEl.className = 'tool-call';
+    toolEl.innerHTML = `<span class="tool-icon">⚙</span> <span class="tool-name">${esc(m.tool)}</span>${inputStr ? '<div class="tool-input">' + inputStr + '</div>' : ''}`;
+    messagesEl.appendChild(toolEl);
+    scrollDown();
+  }
+
+  if (m.type === 'tool_result') {
+    const resEl = document.createElement('div');
+    resEl.className = 'tool-result';
+    resEl.innerHTML = `<span class="tool-icon">↩</span> ${esc(m.content)}`;
+    messagesEl.appendChild(resEl);
+    scrollDown();
   }
 
   if (m.type === 'stream') {
@@ -861,7 +890,6 @@ function closeSkillsPanel() {
 }
 
 // ── Init ──
-loadHistory();
 connect();
 loadSkillsList();
 msgInput.focus();
