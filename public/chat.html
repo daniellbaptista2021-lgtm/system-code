@@ -438,6 +438,9 @@ wrapEl.addEventListener('scroll', () => {
 function scrollDown() {
   if (userAtBottom) requestAnimationFrame(() => wrapEl.scrollTop = wrapEl.scrollHeight);
 }
+function scrollToBottom() {
+  requestAnimationFrame(() => wrapEl.scrollTop = wrapEl.scrollHeight);
+}
 
 // ── WebSocket ──
 function connect() {
@@ -514,6 +517,7 @@ function handleMsg(m) {
     }
     currentStreamEl = null; streamText = '';
     isWaiting = false; hideThinking(); updateBtn();
+    scrollToBottom();
   }
 
   if (m.type === 'telegram_message') {
