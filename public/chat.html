@@ -53,18 +53,24 @@ html,body{
   height:100%;
   font-family:var(--font);
   background:
-    radial-gradient(ellipse at -8% -8%, rgba(210,122,100,0.62) 0%, transparent 44%),
-    radial-gradient(ellipse at 108% -6%, rgba(208,132,112,0.52) 0%, transparent 42%),
-    radial-gradient(ellipse at 8% 68%, rgba(222,162,90,0.46) 0%, transparent 48%),
-    radial-gradient(ellipse at 88% 88%, rgba(215,152,132,0.58) 0%, transparent 42%),
-    radial-gradient(ellipse at 50% 48%, rgba(238,228,155,0.42) 0%, transparent 54%),
-    #f5f0e8;
+    radial-gradient(ellipse at -5% -5%, rgba(205,118,95,0.55) 0%, transparent 38%),
+    radial-gradient(ellipse at 105% -5%, rgba(205,118,95,0.50) 0%, transparent 36%),
+    radial-gradient(ellipse at 92% 92%, rgba(210,130,110,0.52) 0%, transparent 38%),
+    radial-gradient(ellipse at 50% 60%, rgba(242,225,130,0.48) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(228,180,140,0.35) 0%, transparent 55%),
+    #f5ece0;
   background-attachment:fixed;
   color:var(--text);
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility}
+/* Terrazzo decorative pieces */
+.terrazzo{position:fixed;pointer-events:none;z-index:0;overflow:hidden}
+.terrazzo-tl{top:-18px;left:-18px;width:120px;height:120px}
+.terrazzo-tr{top:-18px;right:-18px;width:110px;height:110px}
+.terrazzo-br{bottom:-24px;right:-24px;width:180px;height:180px}
+#app{position:relative;z-index:1}
 #app{display:flex;height:100%}
 
 /* ═══════ SIDEBAR — removida ═══════ */
@@ -305,6 +311,80 @@ input#fileInput{display:none}
 </style>
 </head>
 <body>
+<!-- Terrazzo decorative corners -->
+<div class="terrazzo terrazzo-tl">
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+  <defs>
+    <filter id="tz1"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" seed="2" result="noise"/><feColorMatrix type="saturate" values="0.3" in="noise" result="desatNoise"/><feBlend in="SourceGraphic" in2="desatNoise" mode="multiply" result="blended"/><feComposite in="blended" in2="SourceGraphic" operator="in"/></filter>
+    <clipPath id="cpTL"><path d="M0,0 C30,8 80,0 110,22 C130,40 118,85 100,110 C75,145 20,125 0,100 Z"/></clipPath>
+  </defs>
+  <rect width="120" height="120" fill="#d4937a" clip-path="url(#cpTL)" filter="url(#tz1)"/>
+  <rect width="120" height="120" fill="url(#speckleTL)" clip-path="url(#cpTL)" opacity="0.5"/>
+  <g clip-path="url(#cpTL)" filter="url(#tz1)">
+    <rect width="120" height="120" fill="#c87a62"/>
+    <circle cx="20" cy="15" r="3" fill="#8b4a35" opacity="0.6"/>
+    <circle cx="55" cy="8"  r="2" fill="#f0c0a0" opacity="0.7"/>
+    <circle cx="80" cy="30" r="4" fill="#7a3828" opacity="0.5"/>
+    <circle cx="35" cy="55" r="2.5" fill="#e8a080" opacity="0.8"/>
+    <circle cx="65" cy="70" r="3" fill="#6a2e1e" opacity="0.55"/>
+    <circle cx="10" cy="80" r="2" fill="#f2c8b0" opacity="0.65"/>
+    <circle cx="90" cy="60" r="3.5" fill="#9b5540" opacity="0.5"/>
+    <circle cx="45" cy="95" r="2" fill="#d09070" opacity="0.7"/>
+    <circle cx="15" cy="50" r="1.5" fill="#e0b090" opacity="0.8"/>
+    <circle cx="70" cy="45" r="2" fill="#7c3e2a" opacity="0.6"/>
+    <circle cx="30" cy="30" r="1.5" fill="#f5d0b8" opacity="0.6"/>
+    <circle cx="100" cy="90" r="3" fill="#8a4030" opacity="0.5"/>
+  </g>
+</svg>
+</div>
+<div class="terrazzo terrazzo-tr">
+<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg" width="110" height="110">
+  <defs>
+    <filter id="tz2"><feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" seed="7" result="noise"/><feColorMatrix type="saturate" values="0.3" in="noise" result="dn"/><feBlend in="SourceGraphic" in2="dn" mode="multiply" result="bl"/><feComposite in="bl" in2="SourceGraphic" operator="in"/></filter>
+    <clipPath id="cpTR"><path d="M110,0 C85,5 40,0 15,25 C-5,45 5,90 25,108 C50,140 100,120 110,95 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#cpTR)" filter="url(#tz2)">
+    <rect width="110" height="110" fill="#cc7860"/>
+    <circle cx="90" cy="12" r="3" fill="#8b4030" opacity="0.6"/>
+    <circle cx="55" cy="6"  r="2" fill="#f0bea0" opacity="0.7"/>
+    <circle cx="30" cy="28" r="4" fill="#7a3525" opacity="0.5"/>
+    <circle cx="75" cy="50" r="2.5" fill="#e89e78" opacity="0.8"/>
+    <circle cx="45" cy="68" r="3" fill="#6a2c1c" opacity="0.55"/>
+    <circle cx="100" cy="75" r="2" fill="#f0c5a5" opacity="0.65"/>
+    <circle cx="20" cy="55" r="3.5" fill="#9b5038" opacity="0.5"/>
+    <circle cx="65" cy="90" r="2" fill="#d08c6a" opacity="0.7"/>
+    <circle cx="95" cy="45" r="1.5" fill="#dcae90" opacity="0.8"/>
+    <circle cx="40" cy="40" r="2" fill="#7c3c28" opacity="0.6"/>
+    <circle cx="80" cy="25" r="1.5" fill="#f3ccb5" opacity="0.6"/>
+  </g>
+</svg>
+</div>
+<div class="terrazzo terrazzo-br">
+<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+  <defs>
+    <filter id="tz3"><feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves="4" seed="12" result="noise"/><feColorMatrix type="saturate" values="0.3" in="noise" result="dn"/><feBlend in="SourceGraphic" in2="dn" mode="multiply" result="bl"/><feComposite in="bl" in2="SourceGraphic" operator="in"/></filter>
+    <clipPath id="cpBR"><path d="M180,180 C145,165 95,180 55,155 C15,130 10,80 35,45 C60,10 120,5 155,30 C195,58 195,130 180,180 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#cpBR)" filter="url(#tz3)">
+    <rect width="180" height="180" fill="#d08868"/>
+    <circle cx="150" cy="160" r="4" fill="#8b4030" opacity="0.6"/>
+    <circle cx="100" cy="170" r="2.5" fill="#f0bea0" opacity="0.7"/>
+    <circle cx="60"  cy="150" r="5" fill="#7a3525" opacity="0.5"/>
+    <circle cx="130" cy="130" r="3" fill="#e89e78" opacity="0.8"/>
+    <circle cx="80"  cy="110" r="4" fill="#6a2c1c" opacity="0.55"/>
+    <circle cx="160" cy="110" r="2.5" fill="#f0c5a5" opacity="0.65"/>
+    <circle cx="50"  cy="80"  r="4" fill="#9b5038" opacity="0.5"/>
+    <circle cx="110" cy="70"  r="3" fill="#d08c6a" opacity="0.7"/>
+    <circle cx="155" cy="70"  r="2" fill="#dcae90" opacity="0.8"/>
+    <circle cx="75"  cy="50"  r="3" fill="#7c3c28" opacity="0.6"/>
+    <circle cx="120" cy="40"  r="2" fill="#f3ccb5" opacity="0.6"/>
+    <circle cx="45"  cy="130" r="2.5" fill="#c07858" opacity="0.7"/>
+    <circle cx="170" cy="145" r="3.5" fill="#8a3e2e" opacity="0.5"/>
+    <circle cx="90"  cy="145" r="2" fill="#e8b898" opacity="0.65"/>
+    <circle cx="140" cy="95"  r="3" fill="#752e1e" opacity="0.55"/>
+  </g>
+</svg>
+</div>
 <div id="app">
 
   <!-- Main -->
